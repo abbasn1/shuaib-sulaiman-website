@@ -1,0 +1,34 @@
+Shuaib Sulaiman & Co — Included Product Pages
+
+1. /export-product/pap-custard
+2. /export-product/garri-cassava-flakes
+3. /export-product/roasted-cashew-nuts
+4. /export-product/cashew-kernels
+5. /export-product/shea-butter
+6. /export-product/soyabean-oil
+7. /export-product/roasted-peanuts
+8. /export-product/herbal-teas
+9. /export-product/spices-powder
+10. /export-product/sesame-seeds
+11. /export-product/ginger
+12. /export-product/black-soap
+13. /export-product/animal-feeds-insect-flours-and-meals
+14. /export-product/raw-cashew-nuts
+15. /export-product/snail
+16. /export-product/noodles
+17. /export-product/processed-foods
+18. /export-product/plastic-scraps
+19. /export-product/children-clothing-african-fabrics
+20. /export-product/cassia-tora
+
+Each page includes:
+- Uploaded product image
+- Original rewritten overview
+- Benefits and applications
+- Typical specification panel
+- Packaging options
+- Quality approach
+- Four-step export process
+- Previous/next product navigation
+- Related product links
+- Product-specific quotation link
