@@ -1,6 +1,8 @@
 import { Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
 import AboutPage from './pages/AboutPage'
+import AdminDashboardPage from './pages/AdminDashboardPage'
+import AdminLoginPage from './pages/AdminLoginPage'
 import ContactPage from './pages/ContactPage'
 import HomePage from './pages/HomePage'
 import NotFoundPage from './pages/NotFoundPage'
@@ -12,6 +14,8 @@ import './App.css'
 function App() {
   return (
     <Routes>
+      <Route path="admin" element={<AdminLoginPage />} />
+      <Route path="admin/dashboard" element={<AdminDashboardPage />} />
       <Route element={<Layout />}>
         <Route index element={<HomePage />} />
         <Route path="about" element={<AboutPage />} />
