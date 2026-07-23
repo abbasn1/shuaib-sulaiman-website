@@ -1,14 +1,47 @@
+import { useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import PageHero from '../components/PageHero'
 import { products } from '../data'
+import { isSupabaseConfigured, supabase } from '../lib/supabase'
 
 function ContactPage() {
   const location = useLocation()
   const selectedProduct = location.state?.product ?? ''
+  const [status, setStatus] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
-    window.alert('Thank you. The form is currently a demonstration and will be connected to email or a database later.')
+    setStatus('')
+
+    if (!supabase) {
+      setStatus('The enquiry service is not configured yet. Please email info@shuaibsulaiman.com.')
+      return
+    }
+
+    const form = new FormData(event.currentTarget)
+    setSubmitting(true)
+
+    const { error } = await supabase.from('quotes').insert({
+      full_name: form.get('full_name'),
+      company_name: form.get('company_name') || null,
+      email: form.get('email'),
+      phone: form.get('phone') || null,
+      product_name: form.get('product_name') || null,
+      destination_country: form.get('destination_country') || null,
+      message: form.get('message'),
+      status: 'new',
+    })
+
+    setSubmitting(false)
+
+    if (error) {
+      setStatus(`Unable to send your enquiry: ${error.message}`)
+      return
+    }
+
+    event.currentTarget.reset()
+    setStatus('Thank you. Your enquiry has been received and our team will contact you.')
   }
 
   return (
@@ -35,36 +68,38 @@ function ContactPage() {
         <form className="contact-form" onSubmit={handleSubmit}>
           <label>
             Full Name
-            <input type="text" placeholder="Your name" required />
+            <input name="full_name" type="text" placeholder="Your name" required />
           </label>
           <label>
             Company Name
-            <input type="text" placeholder="Your company" />
+            <input name="company_name" type="text" placeholder="Your company" />
           </label>
           <label>
             Email Address
-            <input type="email" placeholder="name@company.com" required />
+            <input name="email" type="email" placeholder="name@company.com" required />
           </label>
           <label>
             Phone Number
-            <input type="tel" placeholder="Your phone number" />
+            <input name="phone" type="tel" placeholder="Your phone number" />
           </label>
           <label>
             Product of Interest
-            <select defaultValue={selectedProduct}>
+            <select name="product_name" defaultValue={selectedProduct}>
               <option value="">Select a product</option>
               {products.map((product) => <option key={product.slug} value={product.name}>{product.name}</option>)}
             </select>
           </label>
           <label>
             Destination Country
-            <input type="text" placeholder="Destination country" />
+            <input name="destination_country" type="text" placeholder="Destination country" />
           </label>
           <label>
             Message
-            <textarea rows="6" placeholder="Product, quantity, packaging and other requirements" required />
+            <textarea name="message" rows="6" placeholder="Product, quantity, packaging and other requirements" required />
           </label>
-          <button className="primary-button" type="submit">Send Enquiry</button>
+          {status && <p className="form-status" role="status">{status}</p>}
+          {!isSupabaseConfigured && <p className="form-status">Online enquiry storage is not configured.</p>}
+          <button className="primary-button" type="submit" disabled={submitting}>{submitting ? 'Sending…' : 'Send Enquiry'}</button>
         </form>
       </section>
     </>
