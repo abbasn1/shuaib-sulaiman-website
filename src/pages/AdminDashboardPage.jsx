@@ -2,9 +2,19 @@ import { useEffect, useMemo, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { isSupabaseConfigured, supabase } from '../lib/supabase'
 import './Admin.css'
+import './AdminPermissions.css'
 
 const statuses = ['new', 'under_review', 'contacted', 'quotation_sent', 'won', 'lost', 'closed']
 const roles = ['super_admin', 'admin', 'quote_manager', 'sales_officer', 'analytics_viewer', 'auditor']
+
+const rolePermissions = {
+  super_admin: ['Full system access', 'Create and manage users', 'Assign every role', 'Manage enquiries', 'View analytics', 'Reset passwords'],
+  admin: ['Create and manage users', 'Assign staff roles', 'Manage enquiries', 'View analytics', 'Reset passwords'],
+  quote_manager: ['View all enquiries', 'Update enquiry status', 'Assign and manage quotations'],
+  sales_officer: ['View enquiries', 'Update enquiry status', 'Contact customers'],
+  analytics_viewer: ['View enquiries', 'View dashboard totals and analytics', 'Read-only access'],
+  auditor: ['View enquiries', 'View users and roles', 'Read-only audit access'],
+}
 
 function AdminDashboardPage() {
   const navigate = useNavigate()
@@ -97,7 +107,7 @@ function AdminDashboardPage() {
   const updateUser = async (userId, changes) => {
     try {
       await callAdminFunction({ action: 'update', userId, ...changes })
-      setUsers((items) => items.map((item) => item.id === userId ? { ...item, ...changes } : item))
+      setUsers((items) => items.map((item) => item.id === userId ? { ...item, ...changes, ...(changes.isActive !== undefined ? { is_active: changes.isActive } : {}) } : item))
       setNotice('User updated successfully.')
     } catch (updateError) {
       setError(updateError.message)
@@ -157,7 +167,7 @@ function AdminDashboardPage() {
 
       <nav className="admin-tabs" aria-label="Admin sections">
         <button className={section === 'enquiries' ? 'active' : ''} onClick={() => setSection('enquiries')}>Enquiries</button>
-        {canManageUsers && <button className={section === 'users' ? 'active' : ''} onClick={() => setSection('users')}>Users & roles</button>}
+        <button className={section === 'users' ? 'active' : ''} onClick={() => setSection('users')}>Users & roles</button>
         <button className={section === 'settings' ? 'active' : ''} onClick={() => setSection('settings')}>Settings</button>
       </nav>
 
@@ -193,31 +203,53 @@ function AdminDashboardPage() {
         </section>
       </>}
 
-      {section === 'users' && canManageUsers && <div className="admin-users-layout">
-        <section className="admin-panel">
-          <div className="admin-panel-heading"><div><h2>Create user</h2><p>Create a confirmed staff account and assign its role.</p></div></div>
-          <form className="admin-user-form" onSubmit={createUser}>
-            <label>Full name<input required value={newUser.fullName} onChange={(event) => setNewUser({ ...newUser, fullName: event.target.value })} /></label>
-            <label>Email<input required type="email" value={newUser.email} onChange={(event) => setNewUser({ ...newUser, email: event.target.value })} /></label>
-            <label>Temporary password<input required minLength="8" type="password" value={newUser.password} onChange={(event) => setNewUser({ ...newUser, password: event.target.value })} /></label>
-            <label>Role<select value={newUser.role} onChange={(event) => setNewUser({ ...newUser, role: event.target.value })}>{roles.map((role) => <option key={role} value={role}>{role.replaceAll('_', ' ')}</option>)}</select></label>
-            <button disabled={creating}>{creating ? 'Creating…' : 'Create user'}</button>
-          </form>
-        </section>
+      {section === 'users' && <>
+        {!canManageUsers && (
+          <section className="admin-panel admin-access-panel">
+            <h2>User management access required</h2>
+            <p>Your current role is <strong>{profile?.role || 'not configured'}</strong>. Only a <strong>super admin</strong> or <strong>admin</strong> can create users, change roles, activate accounts, or reset passwords.</p>
+            <p>Run the included <code>supabase/bootstrap-admin.sql</code> script in the Supabase SQL Editor to promote your account.</p>
+          </section>
+        )}
 
-        <section className="admin-panel">
-          <div className="admin-panel-heading"><div><h2>Users and roles</h2><p>Change permissions, activate accounts and reset passwords.</p></div></div>
-          <div className="admin-table-wrap"><table><thead><tr><th>User</th><th>Role</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
-            <tbody>{users.map((user) => <tr key={user.id}>
-              <td><strong>{user.full_name}</strong><span>{user.email}</span></td>
-              <td><select value={user.role} onChange={(event) => updateUser(user.id, { role: event.target.value })}>{roles.map((role) => <option key={role} value={role}>{role.replaceAll('_', ' ')}</option>)}</select></td>
-              <td><span className={user.is_active ? 'admin-badge active' : 'admin-badge'}>{user.is_active ? 'Active' : 'Inactive'}</span></td>
-              <td>{new Date(user.created_at).toLocaleDateString()}</td>
-              <td><div className="admin-row-actions"><button onClick={() => updateUser(user.id, { isActive: !user.is_active })}>{user.is_active ? 'Deactivate' : 'Activate'}</button><button onClick={() => resetPassword(user)}>Reset password</button></div></td>
-            </tr>)}{!users.length && <tr><td colSpan="5" className="admin-empty">No users found.</td></tr>}</tbody>
-          </table></div>
+        {canManageUsers && <div className="admin-users-layout">
+          <section className="admin-panel">
+            <div className="admin-panel-heading"><div><h2>Create user</h2><p>Create a confirmed staff account and assign its role.</p></div></div>
+            <form className="admin-user-form" onSubmit={createUser}>
+              <label>Full name<input required value={newUser.fullName} onChange={(event) => setNewUser({ ...newUser, fullName: event.target.value })} /></label>
+              <label>Email<input required type="email" value={newUser.email} onChange={(event) => setNewUser({ ...newUser, email: event.target.value })} /></label>
+              <label>Temporary password<input required minLength="8" type="password" value={newUser.password} onChange={(event) => setNewUser({ ...newUser, password: event.target.value })} /></label>
+              <label>Role<select value={newUser.role} onChange={(event) => setNewUser({ ...newUser, role: event.target.value })}>{roles.map((role) => <option key={role} value={role}>{role.replaceAll('_', ' ')}</option>)}</select></label>
+              <button disabled={creating}>{creating ? 'Creating…' : 'Create user'}</button>
+            </form>
+          </section>
+
+          <section className="admin-panel">
+            <div className="admin-panel-heading"><div><h2>Users and roles</h2><p>Change permissions, activate accounts and reset passwords.</p></div></div>
+            <div className="admin-table-wrap"><table><thead><tr><th>User</th><th>Role</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
+              <tbody>{users.map((user) => <tr key={user.id}>
+                <td><strong>{user.full_name}</strong><span>{user.email}</span></td>
+                <td><select value={user.role} onChange={(event) => updateUser(user.id, { role: event.target.value })}>{roles.map((role) => <option key={role} value={role}>{role.replaceAll('_', ' ')}</option>)}</select></td>
+                <td><span className={user.is_active ? 'admin-badge active' : 'admin-badge'}>{user.is_active ? 'Active' : 'Inactive'}</span></td>
+                <td>{new Date(user.created_at).toLocaleDateString()}</td>
+                <td><div className="admin-row-actions"><button onClick={() => updateUser(user.id, { isActive: !user.is_active })}>{user.is_active ? 'Deactivate' : 'Activate'}</button><button onClick={() => resetPassword(user)}>Reset password</button></div></td>
+              </tr>)}{!users.length && <tr><td colSpan="5" className="admin-empty">No users found.</td></tr>}</tbody>
+            </table></div>
+          </section>
+        </div>}
+
+        <section className="admin-panel admin-permissions-panel">
+          <div className="admin-panel-heading"><div><h2>Roles and permissions</h2><p>Access granted to each administrator role.</p></div></div>
+          <div className="admin-permission-grid">
+            {roles.map((role) => (
+              <article key={role}>
+                <h3>{role.replaceAll('_', ' ')}</h3>
+                <ul>{rolePermissions[role].map((permission) => <li key={permission}>{permission}</li>)}</ul>
+              </article>
+            ))}
+          </div>
         </section>
-      </div>}
+      </>}
 
       {section === 'settings' && <section className="admin-panel admin-settings-panel">
         <div className="admin-panel-heading"><div><h2>Settings</h2><p>Current production configuration and account information.</p></div></div>
