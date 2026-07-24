@@ -19,10 +19,9 @@ function ContactPage() {
       return
     }
 
-    const form = new FormData(event.currentTarget)
-    setSubmitting(true)
-
-    const { error } = await supabase.from('quotes').insert({
+    const formElement = event.currentTarget
+    const form = new FormData(formElement)
+    const quote = {
       full_name: form.get('full_name'),
       company_name: form.get('company_name') || null,
       email: form.get('email'),
@@ -31,17 +30,40 @@ function ContactPage() {
       destination_country: form.get('destination_country') || null,
       message: form.get('message'),
       status: 'new',
-    })
+    }
 
-    setSubmitting(false)
+    setSubmitting(true)
+
+    const { data: savedQuote, error } = await supabase
+      .from('quotes')
+      .insert(quote)
+      .select('id,created_at')
+      .single()
 
     if (error) {
+      setSubmitting(false)
       setStatus(`Unable to send your enquiry: ${error.message}`)
       return
     }
 
-    event.currentTarget.reset()
-    setStatus('Thank you. Your enquiry has been received and our team will contact you.')
+    const { error: emailError } = await supabase.functions.invoke('send-quote-email', {
+      body: {
+        ...quote,
+        quote_id: savedQuote.id,
+        submitted_at: savedQuote.created_at,
+      },
+    })
+
+    setSubmitting(false)
+    formElement.reset()
+
+    if (emailError) {
+      console.error('Quote email notification failed:', emailError)
+      setStatus('Thank you. Your enquiry has been received. Our team will contact you shortly.')
+      return
+    }
+
+    setStatus('Thank you. Your enquiry has been received and emailed to our team.')
   }
 
   return (
@@ -60,7 +82,7 @@ function ContactPage() {
 
           <div className="contact-cards">
             <article><span>Email</span><a href="mailto:info@shuaibsulaiman.com">info@shuaibsulaiman.com</a></article>
-            <article><span>Location</span><strong>Lagos, Nigeria</strong></article>
+            <article><span>Location</span><strong>Nigeria</strong></article>
             <article><span>Minimum Order</span><strong>1 × 20ft Container</strong></article>
           </div>
         </div>
