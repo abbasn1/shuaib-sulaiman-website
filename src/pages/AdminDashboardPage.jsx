@@ -84,7 +84,9 @@ function AdminDashboardPage() {
     setError('')
     setNotice('')
     const { data, error: functionError } = await supabase.functions.invoke('admin-users', { body: payload })
-    if (functionError) throw functionError
+    if (functionError) {
+      throw new Error('The admin-users Edge Function is unavailable. Deploy it in Supabase before creating users or resetting passwords.')
+    }
     if (data?.error) throw new Error(data.error)
     return data
   }
@@ -105,13 +107,36 @@ function AdminDashboardPage() {
   }
 
   const updateUser = async (userId, changes) => {
-    try {
-      await callAdminFunction({ action: 'update', userId, ...changes })
-      setUsers((items) => items.map((item) => item.id === userId ? { ...item, ...changes, ...(changes.isActive !== undefined ? { is_active: changes.isActive } : {}) } : item))
-      setNotice('User updated successfully.')
-    } catch (updateError) {
-      setError(updateError.message)
+    setError('')
+    setNotice('')
+
+    const databaseChanges = {
+      updated_at: new Date().toISOString(),
     }
+
+    if (changes.role !== undefined) databaseChanges.role = changes.role
+    if (changes.isActive !== undefined) databaseChanges.is_active = changes.isActive
+    if (changes.fullName !== undefined) databaseChanges.full_name = changes.fullName
+
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update(databaseChanges)
+      .eq('id', userId)
+
+    if (updateError) {
+      setError(updateError.message)
+      return
+    }
+
+    setUsers((items) => items.map((item) => item.id === userId
+      ? {
+          ...item,
+          ...(changes.role !== undefined ? { role: changes.role } : {}),
+          ...(changes.isActive !== undefined ? { is_active: changes.isActive } : {}),
+          ...(changes.fullName !== undefined ? { full_name: changes.fullName } : {}),
+        }
+      : item))
+    setNotice('User updated successfully.')
   }
 
   const resetPassword = async (user) => {
