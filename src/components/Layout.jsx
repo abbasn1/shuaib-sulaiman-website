@@ -135,6 +135,8 @@ function Layout() {
           <Link to="/products">Our Products</Link>
           <Link to="/services">Services</Link>
           <Link to="/contact">Contact Us</Link>
+          <Link to="/privacy-policy">Privacy Policy</Link>
+          <Link to="/terms-and-conditions">Terms &amp; Conditions</Link>
         </div>
 
         <div>
@@ -152,7 +154,11 @@ function Layout() {
         </div>
 
         <div className="copyright">
-          © {new Date().getFullYear()} Shuaib Sulaiman & Co. All rights reserved.
+          <span>© {new Date().getFullYear()} Shuaib Sulaiman & Co. All rights reserved.</span>
+          <div className="footer-legal-links">
+            <Link to="/privacy-policy">Privacy Policy</Link>
+            <Link to="/terms-and-conditions">Terms &amp; Conditions</Link>
+          </div>
         </div>
       </footer>
     </div>
