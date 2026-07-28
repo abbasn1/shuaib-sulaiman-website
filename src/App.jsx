@@ -6,9 +6,11 @@ import AdminLoginPage from './pages/AdminLoginPage'
 import ContactPage from './pages/ContactPage'
 import HomePage from './pages/HomePage'
 import NotFoundPage from './pages/NotFoundPage'
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage'
 import ProductDetailsPage from './pages/ProductDetailsPage'
 import ProductsPage from './pages/ProductsPage'
 import ServicesPage from './pages/ServicesPage'
+import TermsConditionsPage from './pages/TermsConditionsPage'
 import './App.css'
 
 function App() {
@@ -24,6 +26,9 @@ function App() {
         <Route path="products/:slug" element={<ProductDetailsPage />} />
         <Route path="services" element={<ServicesPage />} />
         <Route path="contact" element={<ContactPage />} />
+        <Route path="privacy-policy" element={<PrivacyPolicyPage />} />
+        <Route path="terms-and-conditions" element={<TermsConditionsPage />} />
+        <Route path="terms" element={<TermsConditionsPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>
