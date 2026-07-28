@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import PageHero from '../components/PageHero'
 import { products } from '../data'
 import { isSupabaseConfigured, supabase } from '../lib/supabase'
@@ -121,6 +121,10 @@ function ContactPage() {
           </label>
           {status && <p className="form-status" role="status">{status}</p>}
           {!isSupabaseConfigured && <p className="form-status">Online enquiry storage is not configured.</p>}
+          <p className="form-legal-note">
+            By submitting this form, you acknowledge our <Link to="/privacy-policy">Privacy Policy</Link> and
+            {' '}<Link to="/terms-and-conditions">Terms &amp; Conditions</Link>.
+          </p>
           <button className="primary-button" type="submit" disabled={submitting}>{submitting ? 'Sending…' : 'Send Enquiry'}</button>
         </form>
       </section>
