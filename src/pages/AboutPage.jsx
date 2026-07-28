@@ -6,20 +6,23 @@ function AboutPage() {
     <>
       <PageHero
         eyebrow="About Shuaib Sulaiman & Co"
-        title="Connecting Nigerian products with global opportunity."
-        text="We help international buyers source, inspect and move quality products from Nigeria with greater confidence."
+        title="Connecting selected Nigerian products with global opportunity."
+        text="From our Abuja office, we help international buyers source, inspect and move our focused range of S&S products with greater confidence."
       />
 
       <section className="story section inner-story">
         <div className="story-image-wrap">
-          <img src="/images/story.jpg" alt="Temporary company placeholder" />
-          <div className="story-year"><strong>2010</strong><span>Established in Lagos</span></div>
+          <img src="/images/story.jpg" alt="Shuaib Sulaiman and Company trade operations" />
+          <div className="story-year"><strong>Abuja</strong><span>63 Pent City Estate, Lokogoma</span></div>
         </div>
         <div className="story-copy">
           <p className="section-label">Who We Are</p>
           <h2>Practical support across the full export journey.</h2>
           <p>
-            Shuaib Sulaiman & Co is a Nigerian trading and export-support company working with buyers, distributors, processors and retailers.
+            Shuaib Sulaiman & Co is a Nigerian trading and export-support company working with buyers, distributors, processors, retailers and qualified industrial customers.
+          </p>
+          <p>
+            Our product focus is S&S Shea Butter, S&S Garri, S&S Cashew Nut, S&S Ginger, S&S Charcoal, S&S Coal (Black) and S&S Yam Flour (Amala).
           </p>
           <p>
             Our work covers supplier identification, product inspection, packaging coordination, documentation, freight planning and shipment support.
