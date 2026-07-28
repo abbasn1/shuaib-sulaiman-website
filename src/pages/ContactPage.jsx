@@ -71,7 +71,7 @@ function ContactPage() {
       <PageHero
         eyebrow="Contact Us"
         title="Tell us what you would like to source."
-        text="Share your product, quantity, packaging and destination requirements. Our team will respond with the appropriate next steps."
+        text="Share your selected S&S product, quantity, packaging and destination requirements. Our team will respond with the appropriate next steps."
       />
 
       <section className="contact section contact-page">
@@ -82,7 +82,7 @@ function ContactPage() {
 
           <div className="contact-cards">
             <article><span>Email</span><a href="mailto:info@shuaibsulaiman.com">info@shuaibsulaiman.com</a></article>
-            <article><span>Location</span><strong>Nigeria</strong></article>
+            <article><span>Address</span><strong>63 Pent City Estate, Lokogoma, Abuja</strong></article>
             <article><span>Minimum Order</span><strong>1 × 20ft Container</strong></article>
           </div>
         </div>
