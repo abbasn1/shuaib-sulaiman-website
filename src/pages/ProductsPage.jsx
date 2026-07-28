@@ -14,9 +14,9 @@ function ProductsPage() {
   return (
     <>
       <PageHero
-        eyebrow="Export Catalogue"
-        title="Quality Nigerian products for global markets."
-        text="Explore our full range of agricultural, processed food, wellness, lifestyle and industrial products. Select any product to view detailed information, common uses, packaging options and our export process."
+        eyebrow="S&S Export Catalogue"
+        title="Seven carefully selected products for global markets."
+        text="Explore S&S Shea Butter, S&S Garri, S&S Cashew Nut, S&S Ginger, S&S Charcoal, S&S Coal (Black) and S&S Yam Flour (Amala). Select a product to view its uses, packaging options and export information."
       />
 
       <section className="catalogue section product-page-section">

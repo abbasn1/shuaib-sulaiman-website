@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="title description">
+  <title id="title">S&amp;S Charcoal</title>
+  <desc id="description">A dark charcoal product illustration with lump charcoal in an export sack.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#16211c"/>
+      <stop offset="1" stop-color="#485247"/>
+    </linearGradient>
+    <linearGradient id="bag" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d8bd82"/>
+      <stop offset="1" stop-color="#9b7440"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="800" fill="url(#background)"/>
+  <circle cx="1025" cy="145" r="210" fill="#d9a83e" opacity=".16"/>
+  <circle cx="170" cy="720" r="280" fill="#1f7354" opacity=".22"/>
+  <ellipse cx="610" cy="688" rx="360" ry="55" fill="#101511" opacity=".48"/>
+  <path d="M355 250h500l70 392c8 45-26 86-72 86H357c-46 0-80-41-72-86z" fill="url(#bag)"/>
+  <path d="M380 245c80-40 370-40 450 0l-22 75H402z" fill="#795430"/>
+  <g fill="#171918" stroke="#454b46" stroke-width="8">
+    <path d="M405 287l104-62 105 50-43 113-121 5z"/>
+    <path d="M560 260l102-64 110 44 21 112-130 48-88-67z"/>
+    <path d="M745 280l92-35 78 78-42 91-108-17z"/>
+    <path d="M455 345l111 14 41 105-76 78-128-38-24-98z"/>
+    <path d="M618 370l117-27 93 83-26 119-134 26-76-95z"/>
+  </g>
+  <text x="600" y="608" text-anchor="middle" font-family="Georgia, serif" font-size="76" font-weight="700" fill="#102b25">S&amp;S</text>
+  <text x="600" y="664" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" letter-spacing="9" fill="#102b25">CHARCOAL</text>
+</svg>

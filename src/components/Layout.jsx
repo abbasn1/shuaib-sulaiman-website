@@ -138,15 +138,15 @@ function Layout() {
         </div>
 
         <div>
-          <h3>Top Products</h3>
-          {products.slice(0, 6).map((product) => (
+          <h3>S&amp;S Products</h3>
+          {products.map((product) => (
             <Link key={product.slug} to={`/export-product/${product.slug}`}>{product.name}</Link>
           ))}
         </div>
 
         <div>
           <h3>Contact</h3>
-          <p>Lagos, Nigeria</p>
+          <p>63 Pent City Estate, Lokogoma, Abuja</p>
           <a href="mailto:info@shuaibsulaiman.com">info@shuaibsulaiman.com</a>
           <p>MOQ: 1 × 20ft Container</p>
         </div>

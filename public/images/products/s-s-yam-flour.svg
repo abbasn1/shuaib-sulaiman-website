@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="title description">
+  <title id="title">S&amp;S Yam Flour Amala</title>
+  <desc id="description">A bowl and pouch of yam flour for amala on a warm food-product background.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f4ead6"/>
+      <stop offset="1" stop-color="#c9a765"/>
+    </linearGradient>
+    <linearGradient id="pouch" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#163a31"/>
+      <stop offset="1" stop-color="#0a241f"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="800" fill="url(#background)"/>
+  <circle cx="1040" cy="105" r="230" fill="#ffffff" opacity=".20"/>
+  <circle cx="130" cy="690" r="260" fill="#1d7655" opacity=".16"/>
+  <ellipse cx="704" cy="656" rx="330" ry="68" fill="#664d2b" opacity=".22"/>
+  <path d="M190 170h355l38 460H150z" fill="url(#pouch)" stroke="#d2a243" stroke-width="8"/>
+  <path d="M180 170h375l-26-74H205z" fill="#d2a243"/>
+  <text x="366" y="300" text-anchor="middle" font-family="Georgia, serif" font-size="76" font-weight="700" fill="#f3d98e">S&amp;S</text>
+  <text x="366" y="367" text-anchor="middle" font-family="Arial, sans-serif" font-size="35" letter-spacing="5" fill="#ffffff">YAM FLOUR</text>
+  <text x="366" y="417" text-anchor="middle" font-family="Arial, sans-serif" font-size="25" letter-spacing="8" fill="#d2a243">AMALA</text>
+  <path d="M231 487c82-53 190-53 272 0-16 79-67 122-136 122s-120-43-136-122z" fill="#efe1bf"/>
+  <path d="M664 315c161 0 292 54 292 121v132c0 90-131 164-292 164s-292-74-292-164V436c0-67 131-121 292-121z" fill="#f4f0e5" stroke="#8f774a" stroke-width="8"/>
+  <ellipse cx="664" cy="436" rx="292" ry="121" fill="#fffaf0" stroke="#8f774a" stroke-width="8"/>
+  <ellipse cx="664" cy="450" rx="210" ry="79" fill="#dcc18f"/>
+  <path d="M515 462c78-92 209-92 298 0-35 97-93 143-150 143-58 0-115-46-148-143z" fill="#5c442d"/>
+  <path d="M519 458c83-62 203-62 290 1" fill="none" stroke="#856646" stroke-width="14" stroke-linecap="round"/>
+</svg>

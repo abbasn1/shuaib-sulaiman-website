@@ -8,7 +8,7 @@ function HomePage() {
       <section className="hero">
         <div className="hero-overlay" />
         <div className="hero-content">
-          <p className="eyebrow">Based in Lagos, Nigeria · Trading Globally</p>
+          <p className="eyebrow">Based in Abuja, Nigeria · Trading Globally</p>
           <h1>
             Nigeria&apos;s trusted
             <span>trade and export partner</span>
@@ -24,16 +24,16 @@ function HomePage() {
 
         <div className="hero-stats">
           <div><strong>15+</strong><span>Years Active</span></div>
-          <div><strong>20+</strong><span>Export Products</span></div>
+          <div><strong>7</strong><span>Core S&amp;S Products</span></div>
           <div><strong>3×</strong><span>Container Capacity</span></div>
           <div><strong>50+</strong><span>Global Clients</span></div>
           <div><strong>1 × 20ft</strong><span>Minimum Order</span></div>
         </div>
       </section>
 
-      <section className="ticker" aria-label="Product categories">
+      <section className="ticker" aria-label="Products">
         <div>
-          {[...products.slice(0, 10), ...products.slice(0, 10)].map((product, index) => (
+          {[...products, ...products].map((product, index) => (
             <span key={`${product.name}-${index}`}>{product.name}</span>
           ))}
         </div>
@@ -41,8 +41,8 @@ function HomePage() {
 
       <section className="story section">
         <div className="story-image-wrap">
-          <img src="/images/story.jpg" alt="Temporary company story placeholder" />
-          <div className="story-year"><strong>2010</strong><span>Established in Lagos</span></div>
+          <img src="/images/story.jpg" alt="Shuaib Sulaiman and Company trade operations" />
+          <div className="story-year"><strong>Abuja</strong><span>63 Pent City Estate, Lokogoma</span></div>
         </div>
 
         <div className="story-copy">
@@ -67,20 +67,20 @@ function HomePage() {
         <div className="section-heading">
           <div>
             <p className="section-label">Export Catalogue</p>
-            <h2>Quality Nigerian products for global markets.</h2>
+            <h2>Seven focused S&amp;S products for global markets.</h2>
           </div>
           <Link className="outline-button" to="/products">View All Products</Link>
         </div>
 
         <div className="product-grid home-products">
-          {products.slice(0, 12).map((product) => (
+          {products.map((product) => (
             <ProductCard key={product.slug} product={product} />
           ))}
         </div>
       </section>
 
       <section className="metrics">
-        <div><strong>20+</strong><span>Export Products</span><p>A broad product range for different market needs.</p></div>
+        <div><strong>7</strong><span>Core S&amp;S Products</span><p>A focused catalogue built around dependable Nigerian supply.</p></div>
         <div><strong>50+</strong><span>Global Buyers</span><p>International buyers supported across multiple regions.</p></div>
         <div><strong>15+</strong><span>Years Experience</span><p>Practical experience in sourcing and export coordination.</p></div>
         <div><strong>100%</strong><span>Quality Focus</span><p>Careful handling of standards, documentation and delivery.</p></div>
