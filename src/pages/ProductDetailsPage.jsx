@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { products } from '../data'
+import { getProductImage } from '../productImage'
 
 const exportSteps = [
   ['01', 'Requirement Review', 'We confirm product type, quantity, destination, packaging and quality expectations.'],
@@ -49,7 +50,7 @@ function ProductDetailsPage() {
 
           <div className="product-detail-layout">
             <div className="product-detail-image">
-              <img src={product.image} alt={product.name} />
+              <img src={getProductImage(product)} alt={product.name} />
               <span className="image-category">{product.category}</span>
             </div>
 
@@ -170,7 +171,7 @@ function ProductDetailsPage() {
           <div className="related-grid">
             {relatedProducts.map((item) => (
               <Link key={item.slug} to={`/export-product/${item.slug}`} className="related-card">
-                <img src={item.image} alt={item.name} />
+                <img src={getProductImage(item)} alt={item.name} />
                 <div><span>{item.category}</span><h3>{item.name}</h3></div>
               </Link>
             ))}
