@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom'
+import { getProductImage } from '../productImage'
 
 function ProductCard({ product }) {
   return (
     <article className="product-card">
       <div className="product-image">
-        <img src={product.image} alt={product.name} />
+        <img src={getProductImage(product)} alt={product.name} />
         <Link to={`/export-product/${product.slug}`}>View Details</Link>
       </div>
       <div className="product-meta">
