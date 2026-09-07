@@ -26,7 +26,7 @@ function PrivacyPolicyPage() {
             <p>
               Shuaib Sulaiman & Co is a Nigerian trading, export and consulting business. Our contact address is
               {' '}<strong>63 Pent City Estate, Lokogoma, Abuja, Nigeria</strong>. You can contact us about privacy matters at
-              {' '}<a href="mailto:info@shuaibsulaiman.com">info@shuaibsulaiman.com</a>.
+              {' '}<a href="mailto:shuaibsgeneralcontractors@gmail.com">shuaibsgeneralcontractors@gmail.com</a>.
             </p>
           </section>
 
@@ -110,7 +110,7 @@ function PrivacyPolicyPage() {
               Protection Commission where you believe your data-protection rights have been infringed.
             </p>
             <p>
-              To make a request, email <a href="mailto:info@shuaibsulaiman.com">info@shuaibsulaiman.com</a>. We may need to verify your identity
+              To make a request, email <a href="mailto:shuaibsgeneralcontractors@gmail.com">shuaibsgeneralcontractors@gmail.com</a>. We may need to verify your identity
               before completing a request.
             </p>
           </section>
@@ -142,7 +142,7 @@ function PrivacyPolicyPage() {
 
           <div className="legal-contact-card">
             <h2>Privacy questions</h2>
-            <p>Email us at <a href="mailto:info@shuaibsulaiman.com">info@shuaibsulaiman.com</a> or write to 63 Pent City Estate, Lokogoma, Abuja, Nigeria.</p>
+            <p>Email us at <a href="mailto:shuaibsgeneralcontractors@gmail.com">shuaibsgeneralcontractors@gmail.com</a> or write to 63 Pent City Estate, Lokogoma, Abuja, Nigeria.</p>
             <Link className="primary-button" to="/contact">Contact Us</Link>
           </div>
         </div>

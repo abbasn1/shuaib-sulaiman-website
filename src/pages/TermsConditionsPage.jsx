@@ -26,7 +26,7 @@ function TermsConditionsPage() {
             <p>
               This website is operated by Shuaib Sulaiman & Co, a Nigerian trading, export and consulting business located at
               {' '}<strong>63 Pent City Estate, Lokogoma, Abuja, Nigeria</strong>. You can contact us at
-              {' '}<a href="mailto:info@shuaibsulaiman.com">info@shuaibsulaiman.com</a>.
+              {' '}<a href="mailto:shuaibsgeneralcontractors@gmail.com">shuaibsgeneralcontractors@gmail.com</a>.
             </p>
           </section>
 
@@ -178,7 +178,7 @@ function TermsConditionsPage() {
 
           <div className="legal-contact-card">
             <h2>Questions about these terms?</h2>
-            <p>Email <a href="mailto:info@shuaibsulaiman.com">info@shuaibsulaiman.com</a> or contact us at 63 Pent City Estate, Lokogoma, Abuja, Nigeria.</p>
+            <p>Email <a href="mailto:shuaibsgeneralcontractors@gmail.com">shuaibsgeneralcontractors@gmail.com</a> or contact us at 63 Pent City Estate, Lokogoma, Abuja, Nigeria.</p>
             <Link className="primary-button" to="/contact">Contact Us</Link>
           </div>
         </div>
