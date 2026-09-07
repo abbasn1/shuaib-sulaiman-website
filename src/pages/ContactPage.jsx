@@ -15,7 +15,7 @@ function ContactPage() {
     setStatus('')
 
     if (!supabase) {
-      setStatus('The enquiry service is not configured yet. Please email info@shuaibsulaiman.com.')
+      setStatus('The enquiry service is not configured yet. Please email shuaibsgeneralcontractors@gmail.com.')
       return
     }
 
@@ -81,7 +81,7 @@ function ContactPage() {
           <p>Please provide as much information as possible so the team can review availability and prepare an appropriate response.</p>
 
           <div className="contact-cards">
-            <article><span>Email</span><a href="mailto:info@shuaibsulaiman.com">info@shuaibsulaiman.com</a></article>
+            <article><span>Email</span><a href="mailto:shuaibsgeneralcontractors@gmail.com">shuaibsgeneralcontractors@gmail.com</a></article>
             <article><span>Address</span><strong>63 Pent City Estate, Lokogoma, Abuja</strong></article>
             <article><span>Minimum Order</span><strong>1 × 20ft Container</strong></article>
           </div>
