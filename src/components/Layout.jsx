@@ -95,6 +95,7 @@ function Layout() {
         <div>
           <h3>Contact</h3>
           <p>63 Pent City Estate, Lokogoma, Abuja</p>
+          <a href="mailto:sulaiman_shuaib@yahoo.com">sulaiman_shuaib@yahoo.com</a>
           <a href="mailto:shuaibsgeneralcontractors@gmail.com">shuaibsgeneralcontractors@gmail.com</a>
           <p>MOQ: 1 × 20ft Container</p>
         </div>
