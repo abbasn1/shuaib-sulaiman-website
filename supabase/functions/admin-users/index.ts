@@ -13,6 +13,7 @@ const jsonResponse = (body: unknown, status = 200) => new Response(JSON.stringif
 
 const assignableRoles = ['super_admin', 'admin', 'quote_manager', 'sales_officer', 'analytics_viewer', 'auditor']
 const adminAssignableRoles = assignableRoles.filter((role) => role !== 'super_admin')
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
@@ -89,11 +90,60 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: 'Change your password before using administrative actions.' }, 403)
     }
 
+    const callerIsSuperAdmin = callerProfile.role === 'super_admin'
+
+    if (action === 'get-settings') {
+      if (!callerIsSuperAdmin) return jsonResponse({ error: 'Only a super administrator can view protected application settings.' }, 403)
+
+      const { data, error } = await adminClient
+        .from('app_settings')
+        .select('setting_value,updated_at')
+        .eq('setting_key', 'quote_notification_email')
+        .maybeSingle()
+      if (error) throw error
+
+      return jsonResponse({
+        settings: {
+          quoteNotificationEmail: data?.setting_value || 'sulaiman_shuaib@yahoo.com',
+          updatedAt: data?.updated_at || null,
+        },
+      })
+    }
+
+    if (action === 'update-notification-email') {
+      if (!callerIsSuperAdmin) return jsonResponse({ error: 'Only a super administrator can change the contact notification email.' }, 403)
+
+      const email = String(body.email || '').trim().toLowerCase()
+      if (!emailPattern.test(email) || email.length > 254) throw new Error('Enter a valid notification email address.')
+
+      const { data: previousSetting, error: previousError } = await adminClient
+        .from('app_settings')
+        .select('setting_value')
+        .eq('setting_key', 'quote_notification_email')
+        .maybeSingle()
+      if (previousError) throw previousError
+
+      const previousEmail = previousSetting?.setting_value || 'sulaiman_shuaib@yahoo.com'
+      const updatedAt = new Date().toISOString()
+      const { error } = await adminClient.from('app_settings').upsert({
+        setting_key: 'quote_notification_email',
+        setting_value: email,
+        updated_by: userData.user.id,
+        updated_at: updatedAt,
+      })
+      if (error) throw error
+
+      await writeAudit('contact_notification_email_updated', 'app_setting', 'quote_notification_email', {
+        previous_email: previousEmail,
+        email,
+      })
+
+      return jsonResponse({ success: true, settings: { quoteNotificationEmail: email, updatedAt } })
+    }
+
     if (!['super_admin', 'admin'].includes(callerProfile.role)) {
       return jsonResponse({ error: 'You are not authorised to manage users.' }, 403)
     }
-
-    const callerIsSuperAdmin = callerProfile.role === 'super_admin'
 
     const validateRole = (role: string) => {
       const allowed = callerIsSuperAdmin ? assignableRoles : adminAssignableRoles
