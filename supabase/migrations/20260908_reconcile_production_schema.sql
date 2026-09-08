@@ -10,6 +10,8 @@ end
 $$;
 
 create table public.quotes_backup_20260908 as table public.quotes;
+alter table public.quotes_backup_20260908 enable row level security;
+revoke all on table public.quotes_backup_20260908 from public, anon, authenticated;
 comment on table public.quotes_backup_20260908 is
   'Full public.quotes snapshot before the 2026-09-08 production schema reconciliation.';
 
@@ -45,10 +47,13 @@ $$;
 -- Temporarily remove policies/functions that depend on the enum while it is rebuilt.
 drop policy if exists "staff read quotes" on public.quotes;
 drop policy if exists "staff update quotes" on public.quotes;
+drop policy if exists "public submit quotes" on public.quotes;
 drop policy if exists "users read profiles" on public.profiles;
 drop policy if exists "admins update profiles" on public.profiles;
 drop policy if exists "analytics read visits" on public.visits;
 drop policy if exists "auditors read logs" on public.audit_logs;
+
+revoke insert on table public.quotes from anon, authenticated;
 
 drop function if exists private.current_role();
 
@@ -100,17 +105,12 @@ for update to authenticated using (
 create policy "users read profiles" on public.profiles
 for select to authenticated using (
   id = (select auth.uid())
-  or private.current_role() in ('super_admin','admin','auditor')
+  or private.current_role() in ('super_admin','admin','quote_manager','auditor')
 );
 
-create policy "admins update profiles" on public.profiles
-for update to authenticated using (
-  private.current_role() = 'super_admin'
-  or (private.current_role() = 'admin' and role <> 'super_admin')
-) with check (
-  private.current_role() = 'super_admin'
-  or (private.current_role() = 'admin' and role <> 'super_admin')
-);
+-- No authenticated profile UPDATE policy is intentionally created here.
+-- User-management writes are performed only by the JWT-protected admin-users
+-- Edge Function with server-side role checks and audit logging.
 
 create policy "analytics read visits" on public.visits
 for select to authenticated using (
