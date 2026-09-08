@@ -13,6 +13,7 @@ import ProductsPage from './pages/ProductsPage'
 import ServicesPage from './pages/ServicesPage'
 import TermsConditionsPage from './pages/TermsConditionsPage'
 import './App.css'
+import './pages/AdminInteractive.css'
 
 function App() {
   return (

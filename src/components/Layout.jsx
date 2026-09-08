@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { products } from '../data'
+import VisitTracker from './VisitTracker'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -25,6 +26,7 @@ function Layout() {
   return (
     <div className="site-shell">
       <ScrollToTop />
+      <VisitTracker />
 
       <header className="site-header">
         <Link className="brand" to="/" aria-label="Shuaib Sulaiman and Company home">

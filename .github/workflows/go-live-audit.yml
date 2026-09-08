@@ -3,7 +3,11 @@ name: Go-Live Audit
 on:
   push:
     branches:
-      - go-live-hardening-20260908
+      - main
+      - admin-dashboard-interactive-20260908
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
@@ -23,6 +27,9 @@ jobs:
       - name: Lint
         run: npm run lint
       - name: Build
+        env:
+          VITE_SUPABASE_URL: https://test.supabase.co
+          VITE_SUPABASE_ANON_KEY: test-public-anon-key
         run: npm run build
       - name: Install browser smoke-test dependency
         run: |
@@ -36,3 +43,4 @@ jobs:
             sleep 1
           done
           BASE_URL=http://127.0.0.1:4173 node scripts/smoke-routes.mjs
+          BASE_URL=http://127.0.0.1:4173 node scripts/smoke-admin-dashboard.mjs

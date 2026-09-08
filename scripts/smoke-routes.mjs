@@ -26,6 +26,36 @@ async function checkRoute(route, viewport) {
   const page = await context.newPage()
   const errors = []
 
+  await page.route('https://test.supabase.co/**', async (mockRoute) => {
+    const request = mockRoute.request()
+    if (request.method() === 'OPTIONS') {
+      return mockRoute.fulfill({
+        status: 200,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': '*',
+        },
+        body: 'ok',
+      })
+    }
+
+    if (new URL(request.url()).pathname === '/rest/v1/visits') {
+      return mockRoute.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        body: '[]',
+      })
+    }
+
+    return mockRoute.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'Access-Control-Allow-Origin': '*' },
+      body: '[]',
+    })
+  })
+
   page.on('pageerror', (error) => errors.push(`pageerror: ${error.message}`))
   page.on('console', (message) => {
     if (message.type() === 'error') errors.push(`console: ${message.text()}`)
