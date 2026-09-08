@@ -26,7 +26,7 @@ Deno.serve(async (request) => {
   try {
     const resendApiKey = Deno.env.get('RESEND_API_KEY')
     const emailFrom = Deno.env.get('QUOTE_EMAIL_FROM') || 'Shuaib Sulaiman & Co <onboarding@resend.dev>'
-    const quoteRecipient = Deno.env.get('QUOTE_NOTIFICATION_EMAIL') || 'shuaibsgeneralcontractors@gmail.com'
+    const quoteRecipient = 'sulaiman_shuaib@yahoo.com'
 
     if (!resendApiKey) {
       throw new Error('RESEND_API_KEY is not configured in Supabase Edge Function secrets.')
