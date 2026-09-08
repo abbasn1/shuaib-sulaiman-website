@@ -39,6 +39,11 @@ const verifyTurnstile = async (secret: string, token: string, remoteIp: string) 
   return Boolean(response.ok && result?.success)
 }
 
+const cleanOptional = (value: unknown, maxLength: number) => {
+  const cleaned = String(value ?? '').trim()
+  return cleaned ? cleaned.slice(0, maxLength) : null
+}
+
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (request.method !== 'POST') return jsonResponse({ error: 'Method not allowed.' }, 405)
@@ -51,21 +56,34 @@ Deno.serve(async (request) => {
     const quoteRecipient = Deno.env.get('QUOTE_NOTIFICATION_EMAIL') || 'sulaiman_shuaib@yahoo.com'
     const turnstileSecret = Deno.env.get('TURNSTILE_SECRET_KEY')
 
-    if (!supabaseUrl || !serviceRoleKey) throw new Error('Supabase server credentials are not configured.')
-    if (!resendApiKey) throw new Error('RESEND_API_KEY is not configured in Supabase Edge Function secrets.')
+    if (!supabaseUrl || !serviceRoleKey) {
+      return jsonResponse({ error: 'Enquiry service configuration is incomplete.' }, 503)
+    }
+    if (!turnstileSecret) {
+      console.error('TURNSTILE_SECRET_KEY is not configured.')
+      return jsonResponse({ error: 'Security verification is temporarily unavailable.' }, 503)
+    }
 
     const body = await request.json()
     const quoteId = String(body?.quote_id || '').trim()
     const turnstileToken = String(body?.turnstile_token || '').trim()
+    const fullName = String(body?.full_name || '').trim().slice(0, 160)
+    const customerEmail = String(body?.email || '').trim().toLowerCase().slice(0, 254)
+    const message = String(body?.message || '').trim().slice(0, 5000)
 
-    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(quoteId)) {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{12}$/i.test(quoteId)) {
       return jsonResponse({ error: 'A valid enquiry reference is required.' }, 400)
     }
+    if (!turnstileToken) return jsonResponse({ error: 'Security verification is required.' }, 400)
+    if (fullName.length < 2) return jsonResponse({ error: 'Please provide your full name.' }, 400)
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
+      return jsonResponse({ error: 'Please provide a valid email address.' }, 400)
+    }
+    if (message.length < 5) return jsonResponse({ error: 'Please provide a little more information about your enquiry.' }, 400)
 
     const forwardedFor = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
     const remoteIp = request.headers.get('cf-connecting-ip') || forwardedFor || 'unknown'
-    const userAgent = request.headers.get('user-agent') || 'unknown'
-    const ipHash = await sha256(`${remoteIp}|${userAgent}`)
+    const ipHash = await sha256(remoteIp)
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey, {
       auth: { persistSession: false, autoRefreshToken: false },
@@ -78,48 +96,46 @@ Deno.serve(async (request) => {
     })
 
     if (rateError) throw new Error(`Rate-limit check failed: ${rateError.message}`)
-    if (!allowed) return jsonResponse({ error: 'Too many notification attempts. Please try again later.' }, 429)
+    if (!allowed) return jsonResponse({ error: 'Too many enquiry attempts. Please try again later.' }, 429)
 
-    // Turnstile becomes mandatory as soon as the server-side secret is provisioned.
-    if (turnstileSecret) {
-      if (!turnstileToken) return jsonResponse({ error: 'Security verification is required.' }, 400)
-      const verified = await verifyTurnstile(turnstileSecret, turnstileToken, remoteIp)
-      if (!verified) return jsonResponse({ error: 'Security verification failed. Please try again.' }, 400)
-    } else {
-      console.warn('TURNSTILE_SECRET_KEY is not configured; Turnstile verification is not active yet.')
+    const verified = await verifyTurnstile(turnstileSecret, turnstileToken, remoteIp)
+    if (!verified) return jsonResponse({ error: 'Security verification failed. Please try again.' }, 400)
+
+    const quote = {
+      id: quoteId,
+      full_name: fullName,
+      company_name: cleanOptional(body?.company_name, 200),
+      email: customerEmail,
+      phone: cleanOptional(body?.phone, 80),
+      product_name: cleanOptional(body?.product_name, 200),
+      destination_country: cleanOptional(body?.destination_country, 120),
+      message,
+      status: 'new',
     }
 
-    // Never trust customer fields sent by the browser. The saved row is authoritative.
-    const { data: quote, error: quoteError } = await adminClient
+    const { data: savedQuote, error: insertError } = await adminClient
       .from('quotes')
-      .select('id,full_name,company_name,email,phone,product_name,destination_country,message,created_at,notification_sent_at')
-      .eq('id', quoteId)
+      .insert(quote)
+      .select('id,full_name,company_name,email,phone,product_name,destination_country,message,created_at')
       .single()
 
-    if (quoteError || !quote) return jsonResponse({ error: 'The saved enquiry could not be verified.' }, 404)
-
-    if (quote.notification_sent_at) {
-      return jsonResponse({ success: true, alreadyNotified: true })
+    if (insertError || !savedQuote) {
+      if (insertError?.code === '23505') {
+        return jsonResponse({ error: 'This enquiry was already submitted.' }, 409)
+      }
+      throw new Error(`Unable to save enquiry: ${insertError?.message || 'unknown database error'}`)
     }
 
-    const quoteAgeMs = Date.now() - new Date(quote.created_at).getTime()
-    if (!Number.isFinite(quoteAgeMs) || quoteAgeMs < -60_000 || quoteAgeMs > 24 * 60 * 60 * 1000) {
-      return jsonResponse({ error: 'The enquiry reference is no longer eligible for automatic notification.' }, 400)
+    if (!resendApiKey) {
+      console.error('RESEND_API_KEY is not configured; enquiry saved without email notification.')
+      return jsonResponse({ success: true, quoteId: savedQuote.id, notificationSent: false })
     }
 
-    const fullName = String(quote.full_name || '').trim()
-    const customerEmail = String(quote.email || '').trim()
-    const message = String(quote.message || '').trim()
-
-    if (!fullName || !customerEmail || !message) {
-      return jsonResponse({ error: 'The saved enquiry is incomplete.' }, 400)
-    }
-
-    const submittedAt = new Date(quote.created_at).toLocaleString('en-NG', { timeZone: 'Africa/Lagos' })
-    const productName = quote.product_name || 'General enquiry'
-    const destination = quote.destination_country || 'Not specified'
-    const companyName = quote.company_name || 'Individual buyer'
-    const phone = quote.phone || 'Not provided'
+    const submittedAt = new Date(savedQuote.created_at).toLocaleString('en-NG', { timeZone: 'Africa/Lagos' })
+    const productName = savedQuote.product_name || 'General enquiry'
+    const destination = savedQuote.destination_country || 'Not specified'
+    const companyName = savedQuote.company_name || 'Individual buyer'
+    const phone = savedQuote.phone || 'Not provided'
 
     const ownerEmail = {
       from: emailFrom,
@@ -139,7 +155,7 @@ Deno.serve(async (request) => {
               <tr><td style="padding:10px 0;font-weight:700">Product</td><td style="padding:10px 0">${escapeHtml(productName)}</td></tr>
               <tr><td style="padding:10px 0;font-weight:700">Destination</td><td style="padding:10px 0">${escapeHtml(destination)}</td></tr>
               <tr><td style="padding:10px 0;font-weight:700">Submitted</td><td style="padding:10px 0">${escapeHtml(submittedAt)}</td></tr>
-              <tr><td style="padding:10px 0;font-weight:700">Reference</td><td style="padding:10px 0">${escapeHtml(quote.id)}</td></tr>
+              <tr><td style="padding:10px 0;font-weight:700">Reference</td><td style="padding:10px 0">${escapeHtml(savedQuote.id)}</td></tr>
             </table>
             <div style="margin-top:24px;padding:20px;background:#f5f0e7;border-left:4px solid #b88a2c">
               <strong>Customer message</strong>
@@ -150,30 +166,35 @@ Deno.serve(async (request) => {
       `,
     }
 
-    const ownerResponse = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${resendApiKey}`,
-        'Content-Type': 'application/json',
-        'User-Agent': 'shuaib-sulaiman-website/1.0',
-      },
-      body: JSON.stringify(ownerEmail),
-    })
+    try {
+      const ownerResponse = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${resendApiKey}`,
+          'Content-Type': 'application/json',
+          'User-Agent': 'shuaib-sulaiman-website/1.0',
+        },
+        body: JSON.stringify(ownerEmail),
+      })
 
-    const ownerResult = await ownerResponse.json()
-    if (!ownerResponse.ok) throw new Error(ownerResult?.message || 'Unable to send quote notification email.')
+      const ownerResult = await ownerResponse.json()
+      if (!ownerResponse.ok) throw new Error(ownerResult?.message || 'Unable to send quote notification email.')
 
-    const { error: updateError } = await adminClient
-      .from('quotes')
-      .update({ notification_sent_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-      .eq('id', quote.id)
-      .is('notification_sent_at', null)
+      const { error: updateError } = await adminClient
+        .from('quotes')
+        .update({ notification_sent_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+        .eq('id', savedQuote.id)
+        .is('notification_sent_at', null)
 
-    if (updateError) console.error('Unable to record notification timestamp:', updateError)
+      if (updateError) console.error('Unable to record notification timestamp:', updateError)
 
-    return jsonResponse({ success: true, emailId: ownerResult.id })
+      return jsonResponse({ success: true, quoteId: savedQuote.id, notificationSent: true, emailId: ownerResult.id })
+    } catch (emailError) {
+      console.error('Quote notification email failed after enquiry was saved:', emailError)
+      return jsonResponse({ success: true, quoteId: savedQuote.id, notificationSent: false })
+    }
   } catch (error) {
     console.error('send-quote-email error:', error)
-    return jsonResponse({ error: error instanceof Error ? error.message : 'Unexpected email delivery error.' }, 500)
+    return jsonResponse({ error: error instanceof Error ? error.message : 'Unexpected enquiry delivery error.' }, 500)
   }
 })
