@@ -65,7 +65,7 @@ const visits = [
   { id: '44444444-4444-4444-8444-444444444442', page_path: '/products', referrer: baseUrl, user_agent: 'Playwright', created_at: new Date().toISOString() },
 ]
 
-const auditLogs = [{
+const initialAuditLog = () => ({
   id: 1,
   actor_id: userId,
   action: 'user_updated',
@@ -73,9 +73,18 @@ const auditLogs = [{
   entity_id: salesUserId,
   details: { role: 'sales_officer' },
   created_at: new Date().toISOString(),
-}]
+})
 
+const auditLogs = [initialAuditLog()]
 let notificationEmail = 'sulaiman_shuaib@yahoo.com'
+
+function resetFixtures() {
+  quotes[0].status = 'new'
+  quotes[0].assigned_to = null
+  quotes[0].updated_at = new Date().toISOString()
+  notificationEmail = 'sulaiman_shuaib@yahoo.com'
+  auditLogs.splice(0, auditLogs.length, initialAuditLog())
+}
 
 const json = (route, body, status = 200) => route.fulfill({
   status,
@@ -146,6 +155,7 @@ const browser = await chromium.launch({ headless: true })
 let failures = 0
 
 async function runDashboardTest(viewport) {
+  resetFixtures()
   const context = await browser.newContext({ viewport })
   const page = await context.newPage()
   const errors = []
