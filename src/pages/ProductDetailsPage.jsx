@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { products } from '../data'
+import { usePublishedProducts } from '../lib/content'
 import { getProductImage } from '../productImage'
 
 const exportSteps = [
@@ -12,6 +12,7 @@ const exportSteps = [
 
 function ProductDetailsPage() {
   const { slug } = useParams()
+  const { products } = usePublishedProducts()
   const product = products.find((item) => item.slug === slug)
 
   useEffect(() => {
@@ -82,7 +83,7 @@ function ProductDetailsPage() {
             <h2>Why buyers choose {product.name}.</h2>
             <div className="benefit-grid">
               {product.benefits.map((benefit, index) => (
-                <article key={benefit}>
+                <article key={`${benefit}-${index}`}>
                   <span>{String(index + 1).padStart(2, '0')}</span>
                   <p>{benefit}</p>
                 </article>
@@ -94,7 +95,7 @@ function ProductDetailsPage() {
             <p className="section-label">Common Uses</p>
             <h2>Suitable applications and buyer segments.</h2>
             <ul className="application-list">
-              {product.applications.map((application) => <li key={application}>{application}</li>)}
+              {product.applications.map((application, index) => <li key={`${application}-${index}`}>{application}</li>)}
             </ul>
           </div>
 
@@ -102,8 +103,8 @@ function ProductDetailsPage() {
             <p className="section-label">Quality Approach</p>
             <h2>Prepared with export delivery in mind.</h2>
             <div className="quality-grid">
-              {product.qualityPoints.map((point) => (
-                <div key={point}><span>✓</span><p>{point}</p></div>
+              {product.qualityPoints.map((point, index) => (
+                <div key={`${point}-${index}`}><span>✓</span><p>{point}</p></div>
               ))}
             </div>
           </div>
@@ -123,7 +124,7 @@ function ProductDetailsPage() {
           <div className="packaging-card">
             <p className="section-label">Packaging</p>
             <h3>Available approaches</h3>
-            <ul>{product.packaging.map((item) => <li key={item}>{item}</li>)}</ul>
+            <ul>{product.packaging.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}</ul>
           </div>
 
           <div className="sidebar-enquiry">
@@ -148,16 +149,18 @@ function ProductDetailsPage() {
         </div>
       </section>
 
-      <nav className="product-next-navigation section" aria-label="Product navigation">
-        <Link to={`/export-product/${previousProduct.slug}`} className="previous-product">
-          <span>← Previous Product</span>
-          <strong>{previousProduct.name}</strong>
-        </Link>
-        <Link to={`/export-product/${nextProduct.slug}`} className="next-product">
-          <span>Next Product →</span>
-          <strong>{nextProduct.name}</strong>
-        </Link>
-      </nav>
+      {products.length > 1 && previousProduct && nextProduct && (
+        <nav className="product-next-navigation section" aria-label="Product navigation">
+          <Link to={`/export-product/${previousProduct.slug}`} className="previous-product">
+            <span>← Previous Product</span>
+            <strong>{previousProduct.name}</strong>
+          </Link>
+          <Link to={`/export-product/${nextProduct.slug}`} className="next-product">
+            <span>Next Product →</span>
+            <strong>{nextProduct.name}</strong>
+          </Link>
+        </nav>
+      )}
 
       {relatedProducts.length > 0 && (
         <section className="related-products section">
