@@ -100,7 +100,13 @@ async function installSupabaseMocks(page) {
     const url = new URL(request.url())
     const path = url.pathname
 
-    if (request.method() === 'OPTIONS') return route.fulfill({ status: 200, headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*' }, body: 'ok' })
+    if (request.method() === 'OPTIONS') {
+      return route.fulfill({
+        status: 200,
+        headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*' },
+        body: 'ok',
+      })
+    }
 
     if (path === '/auth/v1/token') {
       return json(route, {
@@ -111,14 +117,12 @@ async function installSupabaseMocks(page) {
         user: authUser,
       })
     }
-
     if (path === '/auth/v1/user') return json(route, authUser)
 
     if (path === '/rest/v1/profiles') {
       if (url.searchParams.has('id')) return json(route, users[0])
       return json(route, users)
     }
-
     if (path === '/rest/v1/quotes') return json(route, quotes)
     if (path === '/rest/v1/visits') return json(route, visits)
     if (path === '/rest/v1/audit_logs') return json(route, auditLogs)
@@ -130,7 +134,15 @@ async function installSupabaseMocks(page) {
       }
       if (body.action === 'update-notification-email') {
         notificationEmail = body.email
-        auditLogs.unshift({ id: auditLogs.length + 1, actor_id: userId, action: 'contact_notification_email_updated', entity_type: 'app_setting', entity_id: 'quote_notification_email', details: { email: notificationEmail }, created_at: new Date().toISOString() })
+        auditLogs.unshift({
+          id: auditLogs.length + 1,
+          actor_id: userId,
+          action: 'contact_notification_email_updated',
+          entity_type: 'app_setting',
+          entity_id: 'quote_notification_email',
+          details: { email: notificationEmail },
+          created_at: new Date().toISOString(),
+        })
         return json(route, { success: true, settings: { quoteNotificationEmail: notificationEmail, updatedAt: new Date().toISOString() } })
       }
       return json(route, { success: true })
@@ -141,7 +153,15 @@ async function installSupabaseMocks(page) {
       if (body.action === 'update-status') quotes[0].status = body.status
       if (body.action === 'assign') quotes[0].assigned_to = body.assignedTo || null
       quotes[0].updated_at = new Date().toISOString()
-      return json(route, { success: true, quote: { id: quoteId, status: quotes[0].status, assigned_to: quotes[0].assigned_to, updated_at: quotes[0].updated_at } })
+      return json(route, {
+        success: true,
+        quote: {
+          id: quoteId,
+          status: quotes[0].status,
+          assigned_to: quotes[0].assigned_to,
+          updated_at: quotes[0].updated_at,
+        },
+      })
     }
 
     return json(route, { error: `Unhandled mocked Supabase request: ${request.method()} ${path}` }, 500)
@@ -176,7 +196,9 @@ async function runDashboardTest(viewport) {
     await page.getByRole('heading', { name: 'Administration' }).waitFor()
 
     const requiredTabs = ['Overview', 'Enquiries', 'Users & roles', 'Analytics', 'Audit log', 'Settings']
-    for (const tab of requiredTabs) assert(await page.getByRole('button', { name: tab }).isVisible(), `missing dashboard tab: ${tab}`)
+    for (const tab of requiredTabs) {
+      assert(await page.getByRole('button', { name: tab }).isVisible(), `missing dashboard tab: ${tab}`)
+    }
 
     await page.getByRole('button', { name: 'Enquiries' }).click()
     await page.getByText('Alice Buyer').waitFor()
@@ -195,7 +217,7 @@ async function runDashboardTest(viewport) {
 
     await page.getByRole('button', { name: 'Analytics' }).click()
     await page.getByRole('heading', { name: 'Top pages' }).waitFor()
-    await page.getByText('/products').waitFor()
+    await page.getByRole('cell', { name: '/products' }).waitFor()
 
     await page.getByRole('button', { name: 'Audit log' }).click()
     await page.getByRole('heading', { name: 'Audit history' }).waitFor()
