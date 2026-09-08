@@ -1,14 +1,19 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import PageHero from '../components/PageHero'
+import TurnstileWidget from '../components/TurnstileWidget'
 import { products } from '../data'
 import { isSupabaseConfigured, supabase } from '../lib/supabase'
+
+const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY
 
 function ContactPage() {
   const location = useLocation()
   const selectedProduct = location.state?.product ?? ''
   const [status, setStatus] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [turnstileToken, setTurnstileToken] = useState('')
+  const [verificationKey, setVerificationKey] = useState(0)
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -19,9 +24,16 @@ function ContactPage() {
       return
     }
 
+    if (turnstileSiteKey && !turnstileToken) {
+      setStatus('Please complete the security verification before sending your enquiry.')
+      return
+    }
+
     const formElement = event.currentTarget
     const form = new FormData(formElement)
+    const quoteId = crypto.randomUUID()
     const quote = {
+      id: quoteId,
       full_name: form.get('full_name'),
       company_name: form.get('company_name') || null,
       email: form.get('email'),
@@ -34,11 +46,10 @@ function ContactPage() {
 
     setSubmitting(true)
 
-    const { data: savedQuote, error } = await supabase
+    // Store first. Email notification is intentionally a separate best-effort step.
+    const { error } = await supabase
       .from('quotes')
       .insert(quote)
-      .select('id,created_at')
-      .single()
 
     if (error) {
       setSubmitting(false)
@@ -48,14 +59,15 @@ function ContactPage() {
 
     const { error: emailError } = await supabase.functions.invoke('send-quote-email', {
       body: {
-        ...quote,
-        quote_id: savedQuote.id,
-        submitted_at: savedQuote.created_at,
+        quote_id: quoteId,
+        turnstile_token: turnstileToken || null,
       },
     })
 
     setSubmitting(false)
     formElement.reset()
+    setTurnstileToken('')
+    setVerificationKey((value) => value + 1)
 
     if (emailError) {
       console.error('Quote email notification failed:', emailError)
@@ -119,13 +131,20 @@ function ContactPage() {
             Message
             <textarea name="message" rows="6" placeholder="Product, quantity, packaging and other requirements" required />
           </label>
+          <TurnstileWidget key={verificationKey} siteKey={turnstileSiteKey} onTokenChange={setTurnstileToken} />
           {status && <p className="form-status" role="status">{status}</p>}
           {!isSupabaseConfigured && <p className="form-status">Online enquiry storage is not configured.</p>}
           <p className="form-legal-note">
             By submitting this form, you acknowledge our <Link to="/privacy-policy">Privacy Policy</Link> and
             {' '}<Link to="/terms-and-conditions">Terms &amp; Conditions</Link>.
           </p>
-          <button className="primary-button" type="submit" disabled={submitting}>{submitting ? 'Sending…' : 'Send Enquiry'}</button>
+          <button
+            className="primary-button"
+            type="submit"
+            disabled={submitting || Boolean(turnstileSiteKey && !turnstileToken)}
+          >
+            {submitting ? 'Sending…' : 'Send Enquiry'}
+          </button>
         </form>
       </section>
     </>
