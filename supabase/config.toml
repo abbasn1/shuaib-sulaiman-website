@@ -1,2 +1,14 @@
 [functions.send-quote-email]
 verify_jwt = false
+
+[functions.admin-users]
+verify_jwt = true
+
+[functions.admin-quotes]
+verify_jwt = true
+
+[functions.reply-to-quote]
+verify_jwt = true
+
+[functions.admin-content]
+verify_jwt = true
