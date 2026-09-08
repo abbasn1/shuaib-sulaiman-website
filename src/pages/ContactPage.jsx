@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import PageHero from '../components/PageHero'
 import TurnstileWidget from '../components/TurnstileWidget'
-import { products } from '../data'
+import { usePublishedProducts } from '../lib/content'
 import { isSupabaseConfigured, supabase } from '../lib/supabase'
 
 const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY
@@ -10,6 +10,7 @@ const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY
 function ContactPage() {
   const location = useLocation()
   const selectedProduct = location.state?.product ?? ''
+  const { products } = usePublishedProducts()
   const [status, setStatus] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [turnstileToken, setTurnstileToken] = useState('')
