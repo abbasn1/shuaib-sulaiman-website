@@ -53,7 +53,7 @@ Deno.serve(async (request) => {
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     const resendApiKey = Deno.env.get('RESEND_API_KEY')
     const emailFrom = Deno.env.get('QUOTE_EMAIL_FROM') || 'Shuaib Sulaiman & Co <onboarding@resend.dev>'
-    const quoteRecipient = Deno.env.get('QUOTE_NOTIFICATION_EMAIL') || 'sulaiman_shuaib@yahoo.com'
+    const fallbackRecipient = Deno.env.get('QUOTE_NOTIFICATION_EMAIL') || 'sulaiman_shuaib@yahoo.com'
     const turnstileSecret = Deno.env.get('TURNSTILE_SECRET_KEY')
 
     if (!supabaseUrl || !serviceRoleKey) {
@@ -129,6 +129,19 @@ Deno.serve(async (request) => {
     if (!resendApiKey) {
       console.error('RESEND_API_KEY is not configured; enquiry saved without email notification.')
       return jsonResponse({ success: true, quoteId: savedQuote.id, notificationSent: false })
+    }
+
+    let quoteRecipient = fallbackRecipient
+    const { data: recipientSetting, error: recipientError } = await adminClient
+      .from('app_settings')
+      .select('setting_value')
+      .eq('setting_key', 'quote_notification_email')
+      .maybeSingle()
+
+    if (recipientError) {
+      console.error('Unable to load quote notification recipient; using fallback:', recipientError)
+    } else if (recipientSetting?.setting_value) {
+      quoteRecipient = recipientSetting.setting_value
     }
 
     const submittedAt = new Date(savedQuote.created_at).toLocaleString('en-NG', { timeZone: 'Africa/Lagos' })
