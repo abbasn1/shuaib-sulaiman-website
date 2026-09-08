@@ -1,6 +1,7 @@
 import { Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
 import AboutPage from './pages/AboutPage'
+import AdminChangePasswordPage from './pages/AdminChangePasswordPage'
 import AdminDashboardPage from './pages/AdminDashboardPage'
 import AdminLoginPage from './pages/AdminLoginPage'
 import ContactPage from './pages/ContactPage'
@@ -17,6 +18,7 @@ function App() {
   return (
     <Routes>
       <Route path="admin" element={<AdminLoginPage />} />
+      <Route path="admin/change-password" element={<AdminChangePasswordPage />} />
       <Route path="admin/dashboard" element={<AdminDashboardPage />} />
       <Route element={<Layout />}>
         <Route index element={<HomePage />} />

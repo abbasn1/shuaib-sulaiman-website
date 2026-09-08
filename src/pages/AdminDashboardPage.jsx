@@ -31,8 +31,13 @@ function AdminDashboardPage() {
   const [newUser, setNewUser] = useState({ fullName: '', email: '', password: '', role: 'sales_officer' })
 
   const canManageUsers = ['super_admin', 'admin'].includes(profile?.role)
+  const canManageQuotes = ['super_admin', 'admin', 'quote_manager', 'sales_officer'].includes(profile?.role)
+  const assignableRoles = profile?.role === 'super_admin' ? roles : roles.filter((role) => role !== 'super_admin')
 
   const loadData = async () => {
+    setLoading(true)
+    setError('')
+
     const { data: sessionData } = await supabase.auth.getSession()
     const currentSession = sessionData.session
     setSession(currentSession)
@@ -42,25 +47,50 @@ function AdminDashboardPage() {
       return
     }
 
-    const [{ data: profileData, error: profileError }, { data: quoteData, error: quoteError }] = await Promise.all([
-      supabase.from('profiles').select('full_name,email,role,is_active').eq('id', currentSession.user.id).single(),
-      supabase.from('quotes').select('*').order('created_at', { ascending: false }),
-    ])
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('full_name,email,role,is_active,must_change_password')
+      .eq('id', currentSession.user.id)
+      .single()
 
-    if (profileError) setError(profileError.message)
-    else if (!profileData?.is_active) setError('This administrator account is inactive.')
-    else setProfile(profileData)
+    if (profileError) {
+      setError(profileError.message)
+      setLoading(false)
+      return
+    }
 
-    if (quoteError) setError((current) => current || quoteError.message)
+    if (!profileData?.is_active) {
+      setProfile(null)
+      setError('This administrator account is inactive.')
+      setLoading(false)
+      return
+    }
+
+    setProfile(profileData)
+
+    if (profileData.must_change_password) {
+      setLoading(false)
+      navigate('/admin/change-password', { replace: true })
+      return
+    }
+
+    const { data: quoteData, error: quoteError } = await supabase
+      .from('quotes')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (quoteError) setError(quoteError.message)
     else setQuotes(quoteData ?? [])
 
-    if (['super_admin', 'admin'].includes(profileData?.role)) {
+    if (['super_admin', 'admin'].includes(profileData.role)) {
       const { data: userData, error: usersError } = await supabase
         .from('profiles')
         .select('id,full_name,email,role,is_active,must_change_password,last_login_at,created_at')
         .order('created_at', { ascending: false })
       if (usersError) setError((current) => current || usersError.message)
       else setUsers(userData ?? [])
+    } else {
+      setUsers([])
     }
 
     setLoading(false)
@@ -85,7 +115,7 @@ function AdminDashboardPage() {
     setNotice('')
     const { data, error: functionError } = await supabase.functions.invoke('admin-users', { body: payload })
     if (functionError) {
-      throw new Error('The admin-users Edge Function is unavailable. Deploy it in Supabase before creating users or resetting passwords.')
+      throw new Error('The secured administration service is unavailable. Please try again.')
     }
     if (data?.error) throw new Error(data.error)
     return data
@@ -97,7 +127,7 @@ function AdminDashboardPage() {
     try {
       await callAdminFunction({ action: 'create', ...newUser })
       setNewUser({ fullName: '', email: '', password: '', role: 'sales_officer' })
-      setNotice('User created successfully. The account is active and the email is confirmed.')
+      setNotice('User created successfully. They must change the temporary password on first sign-in.')
       await loadData()
     } catch (createError) {
       setError(createError.message)
@@ -107,50 +137,38 @@ function AdminDashboardPage() {
   }
 
   const updateUser = async (userId, changes) => {
-    setError('')
-    setNotice('')
-
-    const databaseChanges = {
-      updated_at: new Date().toISOString(),
-    }
-
-    if (changes.role !== undefined) databaseChanges.role = changes.role
-    if (changes.isActive !== undefined) databaseChanges.is_active = changes.isActive
-    if (changes.fullName !== undefined) databaseChanges.full_name = changes.fullName
-
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update(databaseChanges)
-      .eq('id', userId)
-
-    if (updateError) {
+    try {
+      await callAdminFunction({ action: 'update', userId, ...changes })
+      setUsers((items) => items.map((item) => item.id === userId
+        ? {
+            ...item,
+            ...(changes.role !== undefined ? { role: changes.role } : {}),
+            ...(changes.isActive !== undefined ? { is_active: changes.isActive } : {}),
+            ...(changes.fullName !== undefined ? { full_name: changes.fullName } : {}),
+          }
+        : item))
+      setNotice('User updated successfully.')
+    } catch (updateError) {
       setError(updateError.message)
-      return
     }
-
-    setUsers((items) => items.map((item) => item.id === userId
-      ? {
-          ...item,
-          ...(changes.role !== undefined ? { role: changes.role } : {}),
-          ...(changes.isActive !== undefined ? { is_active: changes.isActive } : {}),
-          ...(changes.fullName !== undefined ? { full_name: changes.fullName } : {}),
-        }
-      : item))
-    setNotice('User updated successfully.')
   }
 
   const resetPassword = async (user) => {
-    const password = window.prompt(`Enter a new password for ${user.email}. Minimum 8 characters.`)
+    const password = window.prompt(`Enter a new temporary password for ${user.email}. Minimum 10 characters.`)
     if (!password) return
     try {
       await callAdminFunction({ action: 'reset-password', userId: user.id, password })
-      setNotice(`Password reset successfully for ${user.email}.`)
+      setUsers((items) => items.map((item) => item.id === user.id ? { ...item, must_change_password: true } : item))
+      setNotice(`Password reset successfully for ${user.email}. They must change it on next sign-in.`)
     } catch (resetError) {
       setError(resetError.message)
     }
   }
 
   const updateStatus = async (id, status) => {
+    const currentQuote = quotes.find((quote) => quote.id === id)
+    if (!currentQuote || !canManageQuotes) return
+
     const { error: updateError } = await supabase
       .from('quotes')
       .update({ status, updated_at: new Date().toISOString() })
@@ -162,6 +180,15 @@ function AdminDashboardPage() {
     }
 
     setQuotes((items) => items.map((item) => item.id === id ? { ...item, status } : item))
+
+    const { error: auditError } = await supabase.from('audit_logs').insert({
+      actor_id: session.user.id,
+      action: 'quote_status_updated',
+      entity_type: 'quote',
+      entity_id: id,
+      details: { previous_status: currentQuote.status, status },
+    })
+    if (auditError) console.error('Unable to write quote status audit log:', auditError)
   }
 
   const signOut = async () => {
@@ -222,7 +249,10 @@ function AdminDashboardPage() {
               <td>{quote.product_name || 'General enquiry'}</td>
               <td>{quote.destination_country || 'Not specified'}</td>
               <td><a href={`mailto:${quote.email}`}>{quote.email}</a><span>{quote.phone || 'No phone'}</span></td>
-              <td><select value={quote.status} onChange={(event) => updateStatus(quote.id, event.target.value)}>{statuses.map((status) => <option key={status} value={status}>{status.replaceAll('_', ' ')}</option>)}</select></td>
+              <td>{canManageQuotes
+                ? <select value={quote.status} onChange={(event) => updateStatus(quote.id, event.target.value)}>{statuses.map((status) => <option key={status} value={status}>{status.replaceAll('_', ' ')}</option>)}</select>
+                : <span>{quote.status.replaceAll('_', ' ')}</span>}
+              </td>
             </tr>)}{!visibleQuotes.length && <tr><td colSpan="6" className="admin-empty">No enquiries found.</td></tr>}</tbody>
           </table></div>
         </section>
@@ -233,7 +263,6 @@ function AdminDashboardPage() {
           <section className="admin-panel admin-access-panel">
             <h2>User management access required</h2>
             <p>Your current role is <strong>{profile?.role || 'not configured'}</strong>. Only a <strong>super admin</strong> or <strong>admin</strong> can create users, change roles, activate accounts, or reset passwords.</p>
-            <p>Run the included <code>supabase/bootstrap-admin.sql</code> script in the Supabase SQL Editor to promote your account.</p>
           </section>
         )}
 
@@ -243,8 +272,8 @@ function AdminDashboardPage() {
             <form className="admin-user-form" onSubmit={createUser}>
               <label>Full name<input required value={newUser.fullName} onChange={(event) => setNewUser({ ...newUser, fullName: event.target.value })} /></label>
               <label>Email<input required type="email" value={newUser.email} onChange={(event) => setNewUser({ ...newUser, email: event.target.value })} /></label>
-              <label>Temporary password<input required minLength="8" type="password" value={newUser.password} onChange={(event) => setNewUser({ ...newUser, password: event.target.value })} /></label>
-              <label>Role<select value={newUser.role} onChange={(event) => setNewUser({ ...newUser, role: event.target.value })}>{roles.map((role) => <option key={role} value={role}>{role.replaceAll('_', ' ')}</option>)}</select></label>
+              <label>Temporary password<input required minLength="10" type="password" value={newUser.password} onChange={(event) => setNewUser({ ...newUser, password: event.target.value })} /></label>
+              <label>Role<select value={newUser.role} onChange={(event) => setNewUser({ ...newUser, role: event.target.value })}>{assignableRoles.map((role) => <option key={role} value={role}>{role.replaceAll('_', ' ')}</option>)}</select></label>
               <button disabled={creating}>{creating ? 'Creating…' : 'Create user'}</button>
             </form>
           </section>
@@ -252,13 +281,16 @@ function AdminDashboardPage() {
           <section className="admin-panel">
             <div className="admin-panel-heading"><div><h2>Users and roles</h2><p>Change permissions, activate accounts and reset passwords.</p></div></div>
             <div className="admin-table-wrap"><table><thead><tr><th>User</th><th>Role</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
-              <tbody>{users.map((user) => <tr key={user.id}>
-                <td><strong>{user.full_name}</strong><span>{user.email}</span></td>
-                <td><select value={user.role} onChange={(event) => updateUser(user.id, { role: event.target.value })}>{roles.map((role) => <option key={role} value={role}>{role.replaceAll('_', ' ')}</option>)}</select></td>
-                <td><span className={user.is_active ? 'admin-badge active' : 'admin-badge'}>{user.is_active ? 'Active' : 'Inactive'}</span></td>
-                <td>{new Date(user.created_at).toLocaleDateString()}</td>
-                <td><div className="admin-row-actions"><button onClick={() => updateUser(user.id, { isActive: !user.is_active })}>{user.is_active ? 'Deactivate' : 'Activate'}</button><button onClick={() => resetPassword(user)}>Reset password</button></div></td>
-              </tr>)}{!users.length && <tr><td colSpan="5" className="admin-empty">No users found.</td></tr>}</tbody>
+              <tbody>{users.map((user) => {
+                const canModifyUser = profile?.role === 'super_admin' || user.role !== 'super_admin'
+                return <tr key={user.id}>
+                  <td><strong>{user.full_name}</strong><span>{user.email}</span>{user.must_change_password && <small>Password change required</small>}</td>
+                  <td><select disabled={!canModifyUser} value={user.role} onChange={(event) => updateUser(user.id, { role: event.target.value })}>{(user.role === 'super_admin' && !assignableRoles.includes('super_admin') ? roles : assignableRoles).map((role) => <option key={role} value={role}>{role.replaceAll('_', ' ')}</option>)}</select></td>
+                  <td><span className={user.is_active ? 'admin-badge active' : 'admin-badge'}>{user.is_active ? 'Active' : 'Inactive'}</span></td>
+                  <td>{new Date(user.created_at).toLocaleDateString()}</td>
+                  <td><div className="admin-row-actions"><button disabled={!canModifyUser} onClick={() => updateUser(user.id, { isActive: !user.is_active })}>{user.is_active ? 'Deactivate' : 'Activate'}</button><button disabled={!canModifyUser} onClick={() => resetPassword(user)}>Reset password</button></div></td>
+                </tr>
+              })}{!users.length && <tr><td colSpan="5" className="admin-empty">No users found.</td></tr>}</tbody>
             </table></div>
           </section>
         </div>}
