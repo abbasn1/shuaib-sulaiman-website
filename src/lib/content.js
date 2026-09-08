@@ -45,8 +45,8 @@ export function usePublishedProducts() {
       .order('sort_order', { ascending: true })
       .order('name', { ascending: true })
       .then(({ data, error }) => {
-        if (!active || error || !data?.length) return
-        setProducts(data.map(mapProductRow))
+        if (!active || error) return
+        setProducts((data ?? []).map(mapProductRow))
         setSource('database')
       })
 
