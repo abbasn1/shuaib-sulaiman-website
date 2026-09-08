@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - admin-dashboard-interactive-20260908
   pull_request:
     branches:
       - main
@@ -44,3 +43,4 @@ jobs:
           done
           BASE_URL=http://127.0.0.1:4173 node scripts/smoke-routes.mjs
           BASE_URL=http://127.0.0.1:4173 node scripts/smoke-admin-dashboard.mjs
+          BASE_URL=http://127.0.0.1:4173 node scripts/smoke-admin-roles.mjs

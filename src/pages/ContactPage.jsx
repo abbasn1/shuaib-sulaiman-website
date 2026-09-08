@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import PageHero from '../components/PageHero'
 import TurnstileWidget from '../components/TurnstileWidget'
-import { products } from '../data'
+import { usePublishedProducts } from '../lib/content'
 import { isSupabaseConfigured, supabase } from '../lib/supabase'
 
 const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY
@@ -10,6 +10,8 @@ const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY
 function ContactPage() {
   const location = useLocation()
   const selectedProduct = location.state?.product ?? ''
+  const { products } = usePublishedProducts()
+  const [productName, setProductName] = useState(selectedProduct)
   const [status, setStatus] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [turnstileToken, setTurnstileToken] = useState('')
@@ -48,7 +50,7 @@ function ContactPage() {
         company_name: form.get('company_name') || null,
         email: form.get('email'),
         phone: form.get('phone') || null,
-        product_name: form.get('product_name') || null,
+        product_name: productName || null,
         destination_country: form.get('destination_country') || null,
         message: form.get('message'),
       },
@@ -65,6 +67,7 @@ function ContactPage() {
     }
 
     formElement.reset()
+    setProductName('')
     setTurnstileToken('')
     setVerificationKey((value) => value + 1)
 
@@ -116,8 +119,9 @@ function ContactPage() {
           </label>
           <label>
             Product of Interest
-            <select name="product_name" defaultValue={selectedProduct}>
+            <select name="product_name" value={productName} onChange={(event) => setProductName(event.target.value)}>
               <option value="">Select a product</option>
+              {productName && !products.some((product) => product.name === productName) && <option value={productName}>{productName}</option>}
               {products.map((product) => <option key={product.slug} value={product.name}>{product.name}</option>)}
             </select>
           </label>

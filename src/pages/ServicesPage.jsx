@@ -1,8 +1,11 @@
 import { Link } from 'react-router-dom'
 import PageHero from '../components/PageHero'
 import { services } from '../data'
+import { usePublishedProducts } from '../lib/content'
 
 function ServicesPage() {
+  const { products } = usePublishedProducts()
+
   return (
     <>
       <PageHero
@@ -17,7 +20,9 @@ function ServicesPage() {
             <article key={service.number}>
               <span>{service.number}</span>
               <h3>{service.title}</h3>
-              <p>{service.text}</p>
+              <p>{service.number === '03'
+                ? `We supply our current catalogue of ${products.length} published S&S products to qualified wholesale, retail, hospitality and industrial buyers.`
+                : service.text}</p>
             </article>
           ))}
         </div>

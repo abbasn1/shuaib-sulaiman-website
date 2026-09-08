@@ -8,5 +8,6 @@ const brandedProductImages = {
 }
 
 export function getProductImage(product) {
+  if (product?.id && product.image) return product.image
   return brandedProductImages[product.slug] ?? product.image
 }

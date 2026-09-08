@@ -72,6 +72,53 @@ create table if not exists public.app_settings (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.products (
+  id uuid primary key default gen_random_uuid(),
+  slug text not null unique check (slug ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$'),
+  name text not null,
+  category text not null,
+  image_url text,
+  summary text not null default '',
+  overview text not null default '',
+  benefits jsonb not null default '[]'::jsonb check (jsonb_typeof(benefits) = 'array'),
+  applications jsonb not null default '[]'::jsonb check (jsonb_typeof(applications) = 'array'),
+  specifications jsonb not null default '{}'::jsonb check (jsonb_typeof(specifications) = 'object'),
+  packaging jsonb not null default '[]'::jsonb check (jsonb_typeof(packaging) = 'array'),
+  quality_points jsonb not null default '[]'::jsonb check (jsonb_typeof(quality_points) = 'array'),
+  is_published boolean not null default false,
+  sort_order integer not null default 0,
+  created_by uuid references public.profiles(id) on delete set null,
+  updated_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.testimonials (
+  id uuid primary key default gen_random_uuid(),
+  source_quote_id uuid references public.quotes(id) on delete set null,
+  buyer_name text not null,
+  company_name text,
+  role_or_market text,
+  quote_text text not null,
+  is_published boolean not null default false,
+  published_at timestamptz,
+  created_by uuid references public.profiles(id) on delete set null,
+  updated_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.quote_responses (
+  id uuid primary key default gen_random_uuid(),
+  quote_id uuid not null references public.quotes(id) on delete cascade,
+  staff_id uuid references public.profiles(id) on delete set null,
+  recipient_email text not null,
+  subject text not null,
+  body text not null,
+  resend_email_id text,
+  created_at timestamptz not null default now()
+);
+
 insert into public.app_settings(setting_key, setting_value)
 values ('quote_notification_email', 'sulaiman_shuaib@yahoo.com')
 on conflict (setting_key) do nothing;
@@ -82,6 +129,9 @@ alter table public.visits enable row level security;
 alter table public.audit_logs enable row level security;
 alter table public.contact_rate_limits enable row level security;
 alter table public.app_settings enable row level security;
+alter table public.products enable row level security;
+alter table public.testimonials enable row level security;
+alter table public.quote_responses enable row level security;
 
 create or replace function private.current_role()
 returns public.app_role
@@ -126,6 +176,28 @@ drop policy if exists "auditors read logs" on public.audit_logs;
 create policy "auditors read logs" on public.audit_logs
 for select to authenticated using (
   private.current_role() in ('super_admin','admin','auditor')
+);
+
+drop policy if exists "public read published products" on public.products;
+create policy "public read published products" on public.products
+for select to anon, authenticated using (is_published = true);
+
+drop policy if exists "super admins read all products" on public.products;
+create policy "super admins read all products" on public.products
+for select to authenticated using (private.current_role() = 'super_admin');
+
+drop policy if exists "public read published testimonials" on public.testimonials;
+create policy "public read published testimonials" on public.testimonials
+for select to anon, authenticated using (is_published = true);
+
+drop policy if exists "super admins read all testimonials" on public.testimonials;
+create policy "super admins read all testimonials" on public.testimonials
+for select to authenticated using (private.current_role() = 'super_admin');
+
+drop policy if exists "staff read quote responses" on public.quote_responses;
+create policy "staff read quote responses" on public.quote_responses
+for select to authenticated using (
+  private.current_role() in ('super_admin','admin','quote_manager','sales_officer','analytics_viewer','auditor')
 );
 
 create or replace function public.handle_new_user()
@@ -197,11 +269,14 @@ $$;
 revoke all on function public.consume_contact_rate_limit(text, integer, integer) from public, anon, authenticated;
 grant execute on function public.consume_contact_rate_limit(text, integer, integer) to service_role;
 
--- Browser clients are read-only for profiles/quotes/audit logs. Trusted Edge
--- Functions use service_role for all privileged writes.
+-- Browser clients stay read-only for privileged business data. Trusted Edge
+-- Functions use service_role for all mutations and perform server-side role checks.
 revoke insert, update, delete on table public.profiles from anon, authenticated;
 revoke insert, update, delete on table public.quotes from anon, authenticated;
 revoke insert, update, delete on table public.audit_logs from anon, authenticated;
+revoke insert, update, delete on table public.products from anon, authenticated;
+revoke insert, update, delete on table public.testimonials from anon, authenticated;
+revoke insert, update, delete on table public.quote_responses from anon, authenticated;
 revoke all on table public.contact_rate_limits from public, anon, authenticated;
 revoke all on table public.app_settings from public, anon, authenticated;
 
@@ -210,8 +285,14 @@ grant select on table public.quotes to authenticated;
 grant insert on table public.visits to anon, authenticated;
 grant select on table public.visits to authenticated;
 grant select on table public.audit_logs to authenticated;
+grant select on table public.products to anon, authenticated;
+grant select on table public.testimonials to anon, authenticated;
+grant select on table public.quote_responses to authenticated;
 grant all on table public.contact_rate_limits to service_role;
 grant all on table public.app_settings to service_role;
+grant all on table public.products to service_role;
+grant all on table public.testimonials to service_role;
+grant all on table public.quote_responses to service_role;
 
 create index if not exists ix_quotes_status on public.quotes(status);
 create index if not exists ix_quotes_created_at on public.quotes(created_at desc);
@@ -221,3 +302,10 @@ create index if not exists ix_audit_logs_created_at on public.audit_logs(created
 create index if not exists ix_audit_logs_actor_id on public.audit_logs(actor_id);
 create index if not exists ix_contact_rate_limits_updated_at on public.contact_rate_limits(updated_at);
 create index if not exists ix_app_settings_updated_by on public.app_settings(updated_by);
+create index if not exists ix_products_published_sort on public.products(is_published, sort_order, name);
+create index if not exists ix_products_updated_by on public.products(updated_by);
+create index if not exists ix_testimonials_published on public.testimonials(is_published, published_at desc nulls last, created_at desc);
+create index if not exists ix_testimonials_source_quote on public.testimonials(source_quote_id);
+create index if not exists ix_testimonials_updated_by on public.testimonials(updated_by);
+create index if not exists ix_quote_responses_quote_created on public.quote_responses(quote_id, created_at);
+create index if not exists ix_quote_responses_staff on public.quote_responses(staff_id);
