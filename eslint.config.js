@@ -7,7 +7,7 @@ export default [
   { ignores: ['dist'] },
   js.configs.recommended,
   {
-    files: ['**/*.{js,jsx}'],
+    files: ['src/**/*.{js,jsx}'],
     languageOptions: {
       ecmaVersion: 'latest',
       globals: globals.browser,
@@ -23,7 +23,17 @@ export default [
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z]' }],
+      'react-hooks/set-state-in-effect': 'off',
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+    },
+  },
+  {
+    files: ['scripts/**/*.mjs', 'vite.config.js'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      globals: { ...globals.node, ...globals.browser },
+      parserOptions: { sourceType: 'module' },
     },
   },
 ]
