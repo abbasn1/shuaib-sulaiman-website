@@ -69,6 +69,16 @@ Deno.serve(async (req) => {
       if (error) console.error('Audit log write failed:', error)
     }
 
+    if (action === 'record-login') {
+      const lastLoginAt = new Date().toISOString()
+      const { error } = await adminClient
+        .from('profiles')
+        .update({ last_login_at: lastLoginAt, updated_at: lastLoginAt })
+        .eq('id', userData.user.id)
+      if (error) throw error
+      return jsonResponse({ success: true, lastLoginAt })
+    }
+
     if (action === 'change-own-password') {
       const password = String(body.password || '')
       if (password.length < 10) throw new Error('Password must contain at least 10 characters.')
@@ -192,6 +202,7 @@ Deno.serve(async (req) => {
       const role = String(body.role || 'sales_officer')
 
       if (!email || !password || !fullName) throw new Error('Full name, email and password are required.')
+      if (!emailPattern.test(email) || email.length > 254) throw new Error('Enter a valid email address.')
       if (password.length < 10) throw new Error('Password must contain at least 10 characters.')
       validateRole(role)
 
