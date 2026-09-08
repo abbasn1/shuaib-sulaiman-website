@@ -220,3 +220,4 @@ create index if not exists ix_visits_created_at on public.visits(created_at desc
 create index if not exists ix_audit_logs_created_at on public.audit_logs(created_at desc);
 create index if not exists ix_audit_logs_actor_id on public.audit_logs(actor_id);
 create index if not exists ix_contact_rate_limits_updated_at on public.contact_rate_limits(updated_at);
+create index if not exists ix_app_settings_updated_by on public.app_settings(updated_by);
