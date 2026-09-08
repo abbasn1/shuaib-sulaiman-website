@@ -1,0 +1,5 @@
+-- Historical migration ledger placeholder.
+-- This temporary helper was applied directly to production and was removed by
+-- the immediately following migration. Its net schema effect is intentionally
+-- represented as a no-op in source control so local/preview migration history
+-- matches production exactly.

@@ -1,0 +1,4 @@
+-- Historical migration ledger placeholder.
+-- Production removed the temporary admin activation helper created by the
+-- preceding migration. The source-controlled pair is intentionally no-op
+-- because the helper no longer exists in the final schema.
