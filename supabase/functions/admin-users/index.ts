@@ -35,16 +35,49 @@ Deno.serve(async (req) => {
 
     const { data: callerProfile, error: callerError } = await adminClient
       .from('profiles')
-      .select('id,role,is_active')
+      .select('id,role,is_active,must_change_password')
       .eq('id', userData.user.id)
       .single()
 
-    if (callerError || !callerProfile?.is_active || !['super_admin', 'admin'].includes(callerProfile.role)) {
-      return jsonResponse({ error: 'You are not authorised to manage users.' }, 403)
+    if (callerError || !callerProfile?.is_active) {
+      return jsonResponse({ error: 'This account is not authorised.' }, 403)
     }
 
     const body = await req.json()
     const action = body.action
+
+    const writeAudit = async (auditAction: string, entityType: string, entityId: string | null, details: Record<string, unknown> = {}) => {
+      const { error } = await adminClient.from('audit_logs').insert({
+        actor_id: userData.user.id,
+        action: auditAction,
+        entity_type: entityType,
+        entity_id: entityId,
+        details,
+      })
+      if (error) console.error('Audit log write failed:', error)
+    }
+
+    if (action === 'change-own-password') {
+      const password = String(body.password || '')
+      if (password.length < 10) throw new Error('Password must contain at least 10 characters.')
+
+      const { error } = await adminClient.auth.admin.updateUserById(userData.user.id, { password })
+      if (error) throw error
+
+      const { error: profileError } = await adminClient
+        .from('profiles')
+        .update({ must_change_password: false, updated_at: new Date().toISOString() })
+        .eq('id', userData.user.id)
+      if (profileError) throw profileError
+
+      await writeAudit('password_changed', 'profile', userData.user.id)
+      return jsonResponse({ success: true })
+    }
+
+    if (!['super_admin', 'admin'].includes(callerProfile.role)) {
+      return jsonResponse({ error: 'You are not authorised to manage users.' }, 403)
+    }
+
     const callerIsSuperAdmin = callerProfile.role === 'super_admin'
 
     const validateRole = (role: string) => {
@@ -68,7 +101,7 @@ Deno.serve(async (req) => {
     if (action === 'create') {
       const { email, password, fullName, role = 'sales_officer' } = body
       if (!email || !password || !fullName) throw new Error('Full name, email and password are required.')
-      if (password.length < 8) throw new Error('Password must contain at least 8 characters.')
+      if (password.length < 10) throw new Error('Password must contain at least 10 characters.')
       validateRole(role)
 
       const { data, error } = await adminClient.auth.admin.createUser({
@@ -87,15 +120,20 @@ Deno.serve(async (req) => {
         is_active: true,
         must_change_password: true,
       })
-      if (profileError) throw profileError
 
+      if (profileError) {
+        await adminClient.auth.admin.deleteUser(data.user.id)
+        throw profileError
+      }
+
+      await writeAudit('user_created', 'profile', data.user.id, { role })
       return jsonResponse({ user: data.user })
     }
 
     if (action === 'update') {
       const { userId, role, isActive, fullName } = body
       if (!userId) throw new Error('User ID is required.')
-      await getTargetProfile(userId)
+      const target = await getTargetProfile(userId)
       if (role !== undefined) validateRole(role)
 
       const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
@@ -105,22 +143,31 @@ Deno.serve(async (req) => {
 
       const { error } = await adminClient.from('profiles').update(updates).eq('id', userId)
       if (error) throw error
+
+      await writeAudit('user_updated', 'profile', userId, {
+        previous_role: target.role,
+        role: role ?? target.role,
+        is_active: isActive ?? target.is_active,
+      })
       return jsonResponse({ success: true })
     }
 
     if (action === 'reset-password') {
       const { userId, password } = body
       if (!userId || !password) throw new Error('User ID and password are required.')
-      if (password.length < 8) throw new Error('Password must contain at least 8 characters.')
+      if (password.length < 10) throw new Error('Password must contain at least 10 characters.')
       await getTargetProfile(userId)
 
       const { error } = await adminClient.auth.admin.updateUserById(userId, { password })
       if (error) throw error
-      await adminClient.from('profiles').update({
+
+      const { error: profileError } = await adminClient.from('profiles').update({
         must_change_password: true,
         updated_at: new Date().toISOString(),
       }).eq('id', userId)
+      if (profileError) throw profileError
 
+      await writeAudit('password_reset', 'profile', userId)
       return jsonResponse({ success: true })
     }
 
