@@ -5,6 +5,7 @@ const supabaseOrigin = 'https://test.supabase.co'
 const userId = '11111111-1111-4111-8111-111111111111'
 const salesUserId = '22222222-2222-4222-8222-222222222222'
 const quoteId = '33333333-3333-4333-8333-333333333333'
+const ciAdminEmail = 'ci-admin@example.test'
 
 const encode = (value) => Buffer.from(JSON.stringify(value)).toString('base64url')
 const accessToken = `${encode({ alg: 'HS256', typ: 'JWT' })}.${encode({ sub: userId, role: 'authenticated', exp: Math.floor(Date.now() / 1000) + 3600 })}.test-signature`
@@ -13,9 +14,9 @@ const authUser = {
   id: userId,
   aud: 'authenticated',
   role: 'authenticated',
-  email: 'admin2@shuaibsulaiman.com',
+  email: ciAdminEmail,
   email_confirmed_at: new Date().toISOString(),
-  user_metadata: { full_name: 'Secondary Super Admin' },
+  user_metadata: { full_name: 'CI Super Admin' },
   app_metadata: { provider: 'email', providers: ['email'] },
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
@@ -24,8 +25,8 @@ const authUser = {
 const users = [
   {
     id: userId,
-    full_name: 'Secondary Super Admin',
-    email: 'admin2@shuaibsulaiman.com',
+    full_name: 'CI Super Admin',
+    email: ciAdminEmail,
     role: 'super_admin',
     is_active: true,
     must_change_password: false,
@@ -35,7 +36,7 @@ const users = [
   {
     id: salesUserId,
     full_name: 'Sales Officer',
-    email: 'sales@example.com',
+    email: 'sales@example.test',
     role: 'sales_officer',
     is_active: true,
     must_change_password: false,
@@ -48,7 +49,7 @@ const quotes = [{
   id: quoteId,
   full_name: 'Alice Buyer',
   company_name: 'Alice Imports',
-  email: 'alice@example.com',
+  email: 'alice@example.test',
   phone: '+2348000000000',
   product_name: 'S&S Ginger',
   destination_country: 'United Kingdom',
@@ -106,7 +107,7 @@ async function installSupabaseMocks(page) {
         access_token: accessToken,
         token_type: 'bearer',
         expires_in: 3600,
-        refresh_token: 'test-refresh-token',
+        refresh_token: 'ci-refresh-token',
         user: authUser,
       })
     }
@@ -168,8 +169,8 @@ async function runDashboardTest(viewport) {
   try {
     await installSupabaseMocks(page)
     await page.goto(`${baseUrl}/admin`, { waitUntil: 'networkidle' })
-    await page.getByLabel('Email address').fill('admin2@shuaibsulaiman.com')
-    await page.getByLabel('Password').fill('TemporaryPassword123!')
+    await page.getByLabel('Email address').fill(ciAdminEmail)
+    await page.getByLabel('Password').fill('ci-test-value')
     await page.getByRole('button', { name: 'Sign in' }).click()
     await page.waitForURL('**/admin/dashboard')
     await page.getByRole('heading', { name: 'Administration' }).waitFor()
@@ -190,7 +191,7 @@ async function runDashboardTest(viewport) {
 
     await page.getByRole('button', { name: 'Users & roles' }).click()
     await page.getByRole('heading', { name: 'Create user' }).waitFor()
-    await page.getByText('Sales Officer').first().waitFor()
+    await page.getByText('sales@example.test').waitFor()
 
     await page.getByRole('button', { name: 'Analytics' }).click()
     await page.getByRole('heading', { name: 'Top pages' }).waitFor()
@@ -204,10 +205,10 @@ async function runDashboardTest(viewport) {
     const recipientInput = page.getByLabel('Notification email')
     await recipientInput.waitFor()
     assert(await recipientInput.inputValue() === 'sulaiman_shuaib@yahoo.com', 'notification recipient did not load')
-    await recipientInput.fill('contact@example.com')
+    await recipientInput.fill('contact@example.test')
     await page.getByRole('button', { name: 'Save notification email' }).click()
     await page.getByText('Contact-form notification email updated successfully.').waitFor()
-    assert(notificationEmail === 'contact@example.com', 'notification recipient update did not reach admin-users')
+    assert(notificationEmail === 'contact@example.test', 'notification recipient update did not reach admin-users')
 
     if (viewport.width <= 430) {
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
