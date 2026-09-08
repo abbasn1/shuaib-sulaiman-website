@@ -1,8 +1,12 @@
 import { Link } from 'react-router-dom'
 import ProductCard from '../components/ProductCard'
-import { products, services, testimonials } from '../data'
+import { services } from '../data'
+import { usePublishedProducts, usePublishedTestimonials } from '../lib/content'
 
 function HomePage() {
+  const { products } = usePublishedProducts()
+  const { testimonials } = usePublishedTestimonials()
+
   return (
     <>
       <section className="hero">
@@ -24,7 +28,7 @@ function HomePage() {
 
         <div className="hero-stats">
           <div><strong>15+</strong><span>Years Active</span></div>
-          <div><strong>7</strong><span>Core S&amp;S Products</span></div>
+          <div><strong>{products.length}</strong><span>Published S&amp;S Products</span></div>
           <div><strong>3×</strong><span>Container Capacity</span></div>
           <div><strong>50+</strong><span>Global Clients</span></div>
           <div><strong>1 × 20ft</strong><span>Minimum Order</span></div>
@@ -34,7 +38,7 @@ function HomePage() {
       <section className="ticker" aria-label="Products">
         <div>
           {[...products, ...products].map((product, index) => (
-            <span key={`${product.name}-${index}`}>{product.name}</span>
+            <span key={`${product.slug}-${index}`}>{product.name}</span>
           ))}
         </div>
       </section>
@@ -67,7 +71,7 @@ function HomePage() {
         <div className="section-heading">
           <div>
             <p className="section-label">Export Catalogue</p>
-            <h2>Seven focused S&amp;S products for global markets.</h2>
+            <h2>{products.length} published S&amp;S products for global markets.</h2>
           </div>
           <Link className="outline-button" to="/products">View All Products</Link>
         </div>
@@ -80,7 +84,7 @@ function HomePage() {
       </section>
 
       <section className="metrics">
-        <div><strong>7</strong><span>Core S&amp;S Products</span><p>A focused catalogue built around dependable Nigerian supply.</p></div>
+        <div><strong>{products.length}</strong><span>Published S&amp;S Products</span><p>A focused catalogue managed by our trade team.</p></div>
         <div><strong>50+</strong><span>Global Buyers</span><p>International buyers supported across multiple regions.</p></div>
         <div><strong>15+</strong><span>Years Experience</span><p>Practical experience in sourcing and export coordination.</p></div>
         <div><strong>100%</strong><span>Quality Focus</span><p>Careful handling of standards, documentation and delivery.</p></div>
@@ -106,24 +110,26 @@ function HomePage() {
         </div>
       </section>
 
-      <section className="testimonials section">
-        <div className="section-heading">
-          <div>
-            <p className="section-label">Client Reviews</p>
-            <h2>Trusted by buyers across different markets.</h2>
+      {testimonials.length > 0 && (
+        <section className="testimonials section">
+          <div className="section-heading">
+            <div>
+              <p className="section-label">Client Reviews</p>
+              <h2>Published buyer experiences.</h2>
+            </div>
           </div>
-        </div>
 
-        <div className="testimonial-grid">
-          {testimonials.map((testimonial) => (
-            <blockquote key={testimonial.name}>
-              <span className="quote-mark">“</span>
-              <p>{testimonial.quote}</p>
-              <footer><strong>{testimonial.name}</strong><span>{testimonial.role}</span></footer>
-            </blockquote>
-          ))}
-        </div>
-      </section>
+          <div className="testimonial-grid">
+            {testimonials.map((testimonial) => (
+              <blockquote key={testimonial.id || `${testimonial.name}-${testimonial.quote}`}>
+                <span className="quote-mark">“</span>
+                <p>{testimonial.quote}</p>
+                <footer><strong>{testimonial.name}</strong><span>{testimonial.role}</span></footer>
+              </blockquote>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="home-cta section">
         <div>
