@@ -3,6 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4'
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
 const jsonResponse = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
@@ -15,12 +16,17 @@ const adminAssignableRoles = assignableRoles.filter((role) => role !== 'super_ad
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+  if (req.method !== 'POST') return jsonResponse({ error: 'Method not allowed.' }, 405)
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     const authHeader = req.headers.get('Authorization') ?? ''
+
+    if (!supabaseUrl || !anonKey || !serviceRoleKey) {
+      return jsonResponse({ error: 'Administrative service configuration is incomplete.' }, 503)
+    }
 
     const callerClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
@@ -44,9 +50,14 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json()
-    const action = body.action
+    const action = String(body?.action || '')
 
-    const writeAudit = async (auditAction: string, entityType: string, entityId: string | null, details: Record<string, unknown> = {}) => {
+    const writeAudit = async (
+      auditAction: string,
+      entityType: string,
+      entityId: string | null,
+      details: Record<string, unknown> = {},
+    ) => {
       const { error } = await adminClient.from('audit_logs').insert({
         actor_id: userData.user.id,
         action: auditAction,
@@ -74,6 +85,10 @@ Deno.serve(async (req) => {
       return jsonResponse({ success: true })
     }
 
+    if (callerProfile.must_change_password) {
+      return jsonResponse({ error: 'Change your password before using administrative actions.' }, 403)
+    }
+
     if (!['super_admin', 'admin'].includes(callerProfile.role)) {
       return jsonResponse({ error: 'You are not authorised to manage users.' }, 403)
     }
@@ -98,8 +113,34 @@ Deno.serve(async (req) => {
       return data
     }
 
+    const protectLastSuperAdmin = async (
+      target: { id: string; role: string; is_active: boolean },
+      nextRole: string | undefined,
+      nextActive: boolean | undefined,
+    ) => {
+      const removesActiveSuperAdmin = target.role === 'super_admin'
+        && target.is_active
+        && ((nextRole !== undefined && nextRole !== 'super_admin') || nextActive === false)
+
+      if (!removesActiveSuperAdmin) return
+
+      const { count, error } = await adminClient
+        .from('profiles')
+        .select('id', { count: 'exact', head: true })
+        .eq('role', 'super_admin')
+        .eq('is_active', true)
+        .neq('id', target.id)
+
+      if (error) throw error
+      if (!count) throw new Error('At least one active super administrator must remain.')
+    }
+
     if (action === 'create') {
-      const { email, password, fullName, role = 'sales_officer' } = body
+      const email = String(body.email || '').trim().toLowerCase()
+      const password = String(body.password || '')
+      const fullName = String(body.fullName || '').trim()
+      const role = String(body.role || 'sales_officer')
+
       if (!email || !password || !fullName) throw new Error('Full name, email and password are required.')
       if (password.length < 10) throw new Error('Password must contain at least 10 characters.')
       validateRole(role)
@@ -131,15 +172,22 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'update') {
-      const { userId, role, isActive, fullName } = body
+      const userId = String(body.userId || '')
+      const role = body.role === undefined ? undefined : String(body.role)
+      const isActive = body.isActive === undefined ? undefined : Boolean(body.isActive)
+      const fullName = body.fullName === undefined ? undefined : String(body.fullName).trim()
+
       if (!userId) throw new Error('User ID is required.')
       const target = await getTargetProfile(userId)
       if (role !== undefined) validateRole(role)
+      if (fullName !== undefined && !fullName) throw new Error('Full name cannot be empty.')
+
+      await protectLastSuperAdmin(target, role, isActive)
 
       const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
       if (role !== undefined) updates.role = role
-      if (isActive !== undefined) updates.is_active = Boolean(isActive)
-      if (fullName !== undefined) updates.full_name = String(fullName).trim()
+      if (isActive !== undefined) updates.is_active = isActive
+      if (fullName !== undefined) updates.full_name = fullName
 
       const { error } = await adminClient.from('profiles').update(updates).eq('id', userId)
       if (error) throw error
@@ -147,13 +195,15 @@ Deno.serve(async (req) => {
       await writeAudit('user_updated', 'profile', userId, {
         previous_role: target.role,
         role: role ?? target.role,
+        previous_is_active: target.is_active,
         is_active: isActive ?? target.is_active,
       })
       return jsonResponse({ success: true })
     }
 
     if (action === 'reset-password') {
-      const { userId, password } = body
+      const userId = String(body.userId || '')
+      const password = String(body.password || '')
       if (!userId || !password) throw new Error('User ID and password are required.')
       if (password.length < 10) throw new Error('Password must contain at least 10 characters.')
       await getTargetProfile(userId)
@@ -171,8 +221,9 @@ Deno.serve(async (req) => {
       return jsonResponse({ success: true })
     }
 
-    throw new Error('Unsupported action.')
+    return jsonResponse({ error: 'Unsupported action.' }, 400)
   } catch (error) {
+    console.error('admin-users error:', error)
     return jsonResponse({ error: error instanceof Error ? error.message : 'Unexpected error' }, 400)
   }
 })
