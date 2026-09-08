@@ -24,7 +24,12 @@ function ContactPage() {
       return
     }
 
-    if (turnstileSiteKey && !turnstileToken) {
+    if (!turnstileSiteKey) {
+      setStatus('Online enquiry submission is temporarily unavailable. Please email shuaibsgeneralcontractors@gmail.com.')
+      return
+    }
+
+    if (!turnstileToken) {
       setStatus('Please complete the security verification before sending your enquiry.')
       return
     }
@@ -32,45 +37,38 @@ function ContactPage() {
     const formElement = event.currentTarget
     const form = new FormData(formElement)
     const quoteId = crypto.randomUUID()
-    const quote = {
-      id: quoteId,
-      full_name: form.get('full_name'),
-      company_name: form.get('company_name') || null,
-      email: form.get('email'),
-      phone: form.get('phone') || null,
-      product_name: form.get('product_name') || null,
-      destination_country: form.get('destination_country') || null,
-      message: form.get('message'),
-      status: 'new',
-    }
 
     setSubmitting(true)
 
-    // Store first. Email notification is intentionally a separate best-effort step.
-    const { error } = await supabase
-      .from('quotes')
-      .insert(quote)
-
-    if (error) {
-      setSubmitting(false)
-      setStatus(`Unable to send your enquiry: ${error.message}`)
-      return
-    }
-
-    const { error: emailError } = await supabase.functions.invoke('send-quote-email', {
+    const { data, error: functionError } = await supabase.functions.invoke('send-quote-email', {
       body: {
         quote_id: quoteId,
-        turnstile_token: turnstileToken || null,
+        turnstile_token: turnstileToken,
+        full_name: form.get('full_name'),
+        company_name: form.get('company_name') || null,
+        email: form.get('email'),
+        phone: form.get('phone') || null,
+        product_name: form.get('product_name') || null,
+        destination_country: form.get('destination_country') || null,
+        message: form.get('message'),
       },
     })
 
     setSubmitting(false)
+
+    if (functionError || data?.error) {
+      console.error('Enquiry submission failed:', functionError || data?.error)
+      setTurnstileToken('')
+      setVerificationKey((value) => value + 1)
+      setStatus('Unable to send your enquiry right now. Please try again or email shuaibsgeneralcontractors@gmail.com.')
+      return
+    }
+
     formElement.reset()
     setTurnstileToken('')
     setVerificationKey((value) => value + 1)
 
-    if (emailError) {
-      console.error('Quote email notification failed:', emailError)
+    if (data?.notificationSent === false) {
       setStatus('Thank you. Your enquiry has been received. Our team will contact you shortly.')
       return
     }
@@ -102,19 +100,19 @@ function ContactPage() {
         <form className="contact-form" onSubmit={handleSubmit}>
           <label>
             Full Name
-            <input name="full_name" type="text" placeholder="Your name" required />
+            <input name="full_name" type="text" placeholder="Your name" maxLength="160" required />
           </label>
           <label>
             Company Name
-            <input name="company_name" type="text" placeholder="Your company" />
+            <input name="company_name" type="text" placeholder="Your company" maxLength="200" />
           </label>
           <label>
             Email Address
-            <input name="email" type="email" placeholder="name@company.com" required />
+            <input name="email" type="email" placeholder="name@company.com" maxLength="254" required />
           </label>
           <label>
             Phone Number
-            <input name="phone" type="tel" placeholder="Your phone number" />
+            <input name="phone" type="tel" placeholder="Your phone number" maxLength="80" />
           </label>
           <label>
             Product of Interest
@@ -125,15 +123,18 @@ function ContactPage() {
           </label>
           <label>
             Destination Country
-            <input name="destination_country" type="text" placeholder="Destination country" />
+            <input name="destination_country" type="text" placeholder="Destination country" maxLength="120" />
           </label>
           <label>
             Message
-            <textarea name="message" rows="6" placeholder="Product, quantity, packaging and other requirements" required />
+            <textarea name="message" rows="6" placeholder="Product, quantity, packaging and other requirements" maxLength="5000" required />
           </label>
           <TurnstileWidget key={verificationKey} siteKey={turnstileSiteKey} onTokenChange={setTurnstileToken} />
           {status && <p className="form-status" role="status">{status}</p>}
           {!isSupabaseConfigured && <p className="form-status">Online enquiry storage is not configured.</p>}
+          {isSupabaseConfigured && !turnstileSiteKey && (
+            <p className="form-status">Online enquiry submission is temporarily unavailable. Please use the email address shown on this page.</p>
+          )}
           <p className="form-legal-note">
             By submitting this form, you acknowledge our <Link to="/privacy-policy">Privacy Policy</Link> and
             {' '}<Link to="/terms-and-conditions">Terms &amp; Conditions</Link>.
@@ -141,7 +142,7 @@ function ContactPage() {
           <button
             className="primary-button"
             type="submit"
-            disabled={submitting || Boolean(turnstileSiteKey && !turnstileToken)}
+            disabled={submitting || !turnstileSiteKey || !turnstileToken}
           >
             {submitting ? 'Sending…' : 'Send Enquiry'}
           </button>
