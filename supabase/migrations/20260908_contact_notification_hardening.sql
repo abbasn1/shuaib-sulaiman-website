@@ -3,6 +3,11 @@ begin;
 alter table public.quotes
   add column if not exists notification_sent_at timestamptz;
 
+-- Public browsers must submit through send-quote-email so Turnstile and rate
+-- limiting are verified before any customer data is written.
+drop policy if exists "public submit quotes" on public.quotes;
+revoke insert on table public.quotes from anon, authenticated;
+
 create table if not exists public.contact_rate_limits (
   ip_hash text primary key,
   window_start timestamptz not null default now(),
