@@ -17,7 +17,9 @@ Configure these in Supabase Edge Function secrets, not Cloudflare Pages public v
 - `SUPABASE_SERVICE_ROLE_KEY` — privileged server-side Supabase key used by administrative functions.
 - `RESEND_API_KEY` — Resend transactional-email credential.
 - `QUOTE_EMAIL_FROM` — verified production sender, for example a mailbox on the verified business domain.
-- `QUOTE_NOTIFICATION_EMAIL` — optional notification destination; the function currently falls back to the approved Yahoo recipient.
+- `QUOTE_NOTIFICATION_EMAIL` — optional emergency/default fallback recipient.
 - `TURNSTILE_SECRET_KEY` — private Turnstile verification secret used by `send-quote-email`.
+
+The normal contact-form recipient is stored server-side in `public.app_settings` under `quote_notification_email`. A signed-in `super_admin` can change it from **Admin → Settings → Contact-form notifications**. `send-quote-email` reads that protected setting first and falls back to `QUOTE_NOTIFICATION_EMAIL`, then to `sulaiman_shuaib@yahoo.com` if no setting exists.
 
 Never commit real values for any server-side secret.
