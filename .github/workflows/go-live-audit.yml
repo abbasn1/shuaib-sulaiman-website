@@ -43,3 +43,4 @@ jobs:
             sleep 1
           done
           BASE_URL=http://127.0.0.1:4173 node scripts/smoke-routes.mjs
+          BASE_URL=http://127.0.0.1:4173 node scripts/smoke-admin-dashboard.mjs
