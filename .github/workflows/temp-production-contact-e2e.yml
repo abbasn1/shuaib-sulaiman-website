@@ -1,4 +1,4 @@
-name: Temporary Production Contact E2E
+name: Temporary Production Domain Probe
 
 on:
   push:
@@ -7,52 +7,24 @@ on:
   workflow_dispatch:
 
 jobs:
-  contact-e2e:
+  probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - name: Verify production domain responds
+      - name: Probe likely Cloudflare Pages hostnames
+        shell: bash
         run: |
-          curl --fail --show-error --silent --location --head https://shuaibsulaiman.com/
-          curl --fail --show-error --silent --location https://shuaibsulaiman.com/contact | grep -q "Shuaib Sulaiman"
-      - name: Install Playwright
-        run: |
-          npm install --no-save playwright@1.55.0
-          npx playwright install --with-deps chromium
-      - name: Submit real production enquiry
-        env:
-          BASE_URL: https://shuaibsulaiman.com
-        run: |
-          node --input-type=module <<'EOF'
-          import { chromium } from 'playwright'
-          const browser = await chromium.launch({ headless: true })
-          const page = await browser.newPage({ viewport: { width: 390, height: 844 } })
-          const errors = []
-          page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()) })
-          await page.goto(`${process.env.BASE_URL}/contact`, { waitUntil: 'networkidle', timeout: 60000 })
-          await page.locator('input[name="full_name"]').fill('Production E2E Test Buyer')
-          await page.locator('input[name="company_name"]').fill('E2E TEST - DO NOT TREAT AS A REAL LEAD')
-          await page.locator('input[name="email"]').fill('abuahil531@gmail.com')
-          await page.locator('input[name="phone"]').fill('+2348000000000')
-          await page.locator('select[name="product_name"]').selectOption({ label: 'S&S Ginger' })
-          await page.locator('input[name="destination_country"]').fill('Nigeria')
-          await page.locator('textarea[name="message"]').fill('PRODUCTION E2E TEST: validating that a real website enquiry is stored and emailed to the configured team inbox. Please ignore as a commercial lead.')
-          const submit = page.getByRole('button', { name: 'Send Enquiry' })
-          await submit.waitFor({ state: 'visible' })
-          await page.waitForFunction(() => {
-            const button = [...document.querySelectorAll('button')].find((item) => item.textContent?.includes('Send Enquiry'))
-            return button && !button.disabled
-          }, { timeout: 60000 })
-          await submit.click()
-          const status = page.locator('[role="status"]')
-          await status.waitFor({ state: 'visible', timeout: 60000 })
-          const text = (await status.textContent()) || ''
-          console.log(`CONTACT_STATUS=${text}`)
-          if (!text.includes('received')) throw new Error(`Unexpected contact status: ${text}`)
-          if (errors.length) console.log(`BROWSER_ERRORS=${JSON.stringify(errors)}`)
-          await browser.close()
-          EOF
+          set +e
+          for host in \
+            shuaib-sulaiman-website.pages.dev \
+            shuaib-sulaiman.pages.dev \
+            shuaib-sulaiman-co.pages.dev \
+            shuaib-sulaiman-company.pages.dev \
+            shuaibsulaiman.pages.dev \
+            shuaibsulaimanco.pages.dev; do
+            echo "=== $host ==="
+            getent hosts "$host" || true
+            curl --connect-timeout 5 --max-time 10 --silent --show-error --location --head "https://$host/" | head -n 12 || true
+          done
+          exit 0
