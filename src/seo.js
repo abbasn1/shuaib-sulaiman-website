@@ -1,7 +1,7 @@
 import { products } from './data.js'
 
 export const SITE_NAME = 'Shuaib Sulaiman & Co'
-export const DEFAULT_SITE_ORIGIN = 'https://shuaibsulaiman.com'
+export const DEFAULT_SITE_ORIGIN = 'https://shuaibsulaimangeneralcontractors.com'
 export const DEFAULT_OG_IMAGE = '/images/logo.png'
 
 export const PUBLIC_STATIC_ROUTES = [
