@@ -28,11 +28,11 @@ Deno.serve(async (request) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-    const resendApiKey = Deno.env.get('RESEND_API_KEY')
+    let resendApiKey = Deno.env.get('RESEND_API_KEY') || ''
     const emailFrom = Deno.env.get('QUOTE_EMAIL_FROM') || 'Shuaib Sulaiman & Co <onboarding@resend.dev>'
     const authHeader = request.headers.get('Authorization') ?? ''
 
-    if (!supabaseUrl || !anonKey || !serviceRoleKey || !resendApiKey) {
+    if (!supabaseUrl || !anonKey || !serviceRoleKey) {
       return jsonResponse({ error: 'Reply service configuration is incomplete.' }, 503)
     }
 
@@ -43,6 +43,18 @@ Deno.serve(async (request) => {
     const adminClient = createClient(supabaseUrl, serviceRoleKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     })
+
+    if (!resendApiKey) {
+      const { data: secretRow, error: secretError } = await adminClient
+        .from('integration_secrets')
+        .select('secret_value')
+        .eq('secret_key', 'resend_api_key')
+        .maybeSingle()
+      if (secretError) console.error('Unable to load Resend credential:', secretError.message)
+      resendApiKey = secretRow?.secret_value || ''
+    }
+
+    if (!resendApiKey) return jsonResponse({ error: 'Reply email provider is not configured.' }, 503)
 
     const { data: userData, error: userError } = await callerClient.auth.getUser()
     if (userError || !userData.user) return jsonResponse({ error: 'Unauthenticated request.' }, 401)
@@ -161,12 +173,7 @@ Deno.serve(async (request) => {
     })
     if (auditError) console.error('Audit log write failed:', auditError)
 
-    return jsonResponse({
-      success: true,
-      response: responseRecord,
-      status: nextStatus,
-      emailId: emailResult.id || null,
-    })
+    return jsonResponse({ success: true, response: responseRecord, status: nextStatus, emailId: emailResult.id || null })
   } catch (error) {
     console.error('reply-to-quote error:', error)
     return jsonResponse({ error: error instanceof Error ? error.message : 'Unexpected reply error.' }, 500)
