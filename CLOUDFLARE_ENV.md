@@ -8,7 +8,7 @@ Configure only browser-safe values in the Cloudflare production build:
 - `VITE_SUPABASE_ANON_KEY` — the project's public anon/publishable-compatible key used by the current frontend client.
 - `VITE_TURNSTILE_SITE_KEY` — the public Cloudflare Turnstile site key for the production domain.
 
-These `VITE_` values are bundled into the browser and must never contain privileged credentials.
+These `VITE_` values are bundled into the browser and must never contain privileged credentials. After changing any `VITE_` value, trigger a fresh production deployment so Vite rebuilds the frontend with the new value.
 
 ## Supabase Edge Function secrets — server-side only
 
