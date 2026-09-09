@@ -5,7 +5,7 @@ import './Admin.css'
 import './AdminPermissions.css'
 import './AdminOperations.css'
 
-const statuses = ['new', 'under_review', 'contacted', 'quotation_sent', 'won', 'lost', 'closed']
+const statuses = ['new', 'under_review', 'approved', 'contacted', 'quotation_sent', 'won', 'lost', 'closed']
 const roles = ['super_admin', 'admin', 'quote_manager', 'sales_officer', 'analytics_viewer', 'auditor', 'content_editor']
 const assignableStaffRoles = ['super_admin', 'admin', 'quote_manager', 'sales_officer']
 const replyRoles = ['super_admin', 'admin', 'quote_manager', 'sales_officer']
@@ -130,6 +130,7 @@ function AdminDashboardPage() {
   const canViewDirectory = ['super_admin', 'admin', 'quote_manager', 'auditor'].includes(role)
   const canUpdateQuoteStatus = ['super_admin', 'admin', 'quote_manager', 'sales_officer'].includes(role)
   const canAssignQuotes = ['super_admin', 'admin', 'quote_manager'].includes(role)
+  const canApproveQuotes = ['super_admin', 'admin'].includes(role)
   const canReply = replyRoles.includes(role)
   const canViewAnalytics = ['super_admin', 'admin', 'analytics_viewer', 'auditor'].includes(role)
   const canViewAudit = ['super_admin', 'admin', 'auditor'].includes(role)
@@ -435,6 +436,23 @@ function AdminDashboardPage() {
     } catch (statusError) {
       setQuotes((items) => items.map((item) => item.id === quoteId ? previous : item))
       setError(statusError.message)
+    } finally {
+      setBusyAction('')
+    }
+  }
+
+  const approveQuote = async (quoteId) => {
+    const previous = quotes.find((quote) => quote.id === quoteId)
+    if (!previous || previous.status === 'approved') return
+    setBusyAction(`approve:${quoteId}`)
+    setError('')
+    try {
+      const data = await callQuoteFunction({ action: 'approve', quoteId })
+      setQuotes((items) => items.map((item) => item.id === quoteId ? { ...item, ...data.quote } : item))
+      setNotice('Enquiry approved.')
+      await loadAuditLogs(role)
+    } catch (approvalError) {
+      setError(approvalError.message)
     } finally {
       setBusyAction('')
     }
@@ -809,6 +827,9 @@ function AdminDashboardPage() {
                     ) : <span className="ops-readonly-note">Status is read-only for your role.</span>}
                     {canAssignQuotes && (
                       <label><span>Assigned to</span><select disabled={busyAction === `assign:${quote.id}`} value={quote.assigned_to || ''} onChange={(event) => assignQuote(quote.id, event.target.value)}><option value="">Unassigned</option>{quoteAssignees.map((user) => <option key={user.id} value={user.id}>{user.full_name}</option>)}</select></label>
+                    )}
+                    {canApproveQuotes && quote.status !== 'approved' && (
+                      <button className="ops-primary" type="button" disabled={busyAction === `approve:${quote.id}`} onClick={() => approveQuote(quote.id)}>Approve</button>
                     )}
                     {!canAssignQuotes && quote.assigned_to && <span className="ops-readonly-note">Assigned to {userById.get(quote.assigned_to)?.full_name || 'staff'}</span>}
                     <button className="ops-primary" type="button" onClick={() => openQuote(quote)}>{canReply ? 'Open & reply' : 'Open enquiry'}</button>
