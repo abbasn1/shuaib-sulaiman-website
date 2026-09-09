@@ -12,7 +12,12 @@ import {
 
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), '..')
 const mode = process.argv[2] || 'all'
-const siteOrigin = normalizeOrigin(process.env.SITE_URL || process.env.VITE_SITE_URL || DEFAULT_SITE_ORIGIN)
+const siteOrigin = normalizeOrigin(
+  process.env.SITE_URL ||
+  process.env.VITE_SITE_URL ||
+  process.env.CF_PAGES_URL ||
+  DEFAULT_SITE_ORIGIN,
+)
 
 const escapeHtml = (value) => String(value)
   .replaceAll('&', '&amp;')
