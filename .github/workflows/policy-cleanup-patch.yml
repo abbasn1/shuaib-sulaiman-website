@@ -1,0 +1,33 @@
+name: Apply policy cleanup patch
+
+on:
+  push:
+    branches:
+      - grand-prompt-advisor-cleanup-20260909
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: grand-prompt-advisor-cleanup-20260909
+      - name: Patch base schema
+        run: python scripts/apply_policy_cleanup.py
+      - name: Remove one-shot patch files
+        run: rm scripts/apply_policy_cleanup.py .github/workflows/policy-cleanup-patch.yml
+      - name: Commit patched schema
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git commit -m "db: align base schema with consolidated policies"
+          git push origin HEAD:grand-prompt-advisor-cleanup-20260909
