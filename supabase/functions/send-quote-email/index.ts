@@ -51,7 +51,7 @@ Deno.serve(async (request) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-    const resendApiKey = Deno.env.get('RESEND_API_KEY')
+    let resendApiKey = Deno.env.get('RESEND_API_KEY') || ''
     const emailFrom = Deno.env.get('QUOTE_EMAIL_FROM') || 'Shuaib Sulaiman & Co <onboarding@resend.dev>'
     const fallbackRecipient = Deno.env.get('QUOTE_NOTIFICATION_EMAIL') || 'sulaiman_shuaib@yahoo.com'
     const turnstileSecret = Deno.env.get('TURNSTILE_SECRET_KEY')
@@ -77,6 +77,17 @@ Deno.serve(async (request) => {
     const ipHash = await sha256(remoteIp)
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } })
+
+    if (!resendApiKey) {
+      const { data: secretRow, error: secretError } = await adminClient
+        .from('integration_secrets')
+        .select('secret_value')
+        .eq('secret_key', 'resend_api_key')
+        .maybeSingle()
+      if (secretError) console.error('Unable to load Resend credential:', secretError.message)
+      resendApiKey = secretRow?.secret_value || ''
+    }
+
     const { data: allowed, error: rateError } = await adminClient.rpc('consume_contact_rate_limit', {
       p_ip_hash: ipHash,
       p_limit: 5,
@@ -117,7 +128,7 @@ Deno.serve(async (request) => {
       return jsonResponse({ success: true, quoteId: savedQuote.id, notificationSent: false })
     }
 
-    if (!resendApiKey) return await recordFailure('RESEND_API_KEY is not configured on the Edge Function.')
+    if (!resendApiKey) return await recordFailure('Resend email provider is not configured.')
 
     let quoteRecipient = fallbackRecipient
     const { data: recipientSetting, error: recipientError } = await adminClient.from('app_settings')
