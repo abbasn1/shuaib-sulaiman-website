@@ -29,7 +29,10 @@ jobs:
         env:
           VITE_SUPABASE_URL: https://test.supabase.co
           VITE_SUPABASE_ANON_KEY: test-public-anon-key
+          VITE_SITE_URL: https://shuaibsulaiman.com
         run: npm run build
+      - name: Verify SEO artifacts
+        run: node scripts/smoke-seo.mjs
       - name: Install browser smoke-test dependency
         run: |
           npm install --no-save playwright@1.55.0
