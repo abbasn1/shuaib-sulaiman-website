@@ -6,7 +6,7 @@ import './AdminPermissions.css'
 import './AdminOperations.css'
 
 const statuses = ['new', 'under_review', 'contacted', 'quotation_sent', 'won', 'lost', 'closed']
-const roles = ['super_admin', 'admin', 'quote_manager', 'sales_officer', 'analytics_viewer', 'auditor']
+const roles = ['super_admin', 'admin', 'quote_manager', 'sales_officer', 'analytics_viewer', 'auditor', 'content_editor']
 const assignableStaffRoles = ['super_admin', 'admin', 'quote_manager', 'sales_officer']
 const replyRoles = ['super_admin', 'admin', 'quote_manager', 'sales_officer']
 
@@ -125,6 +125,7 @@ function AdminDashboardPage() {
 
   const role = profile?.role
   const isSuperAdmin = role === 'super_admin'
+  const canManageContent = ['super_admin', 'content_editor'].includes(role)
   const canManageUsers = ['super_admin', 'admin'].includes(role)
   const canViewDirectory = ['super_admin', 'admin', 'quote_manager', 'auditor'].includes(role)
   const canUpdateQuoteStatus = ['super_admin', 'admin', 'quote_manager', 'sales_officer'].includes(role)
@@ -205,7 +206,7 @@ function AdminDashboardPage() {
   }, [])
 
   const loadContent = useCallback(async () => {
-    if (!isSuperAdmin) {
+    if (!canManageContent) {
       setProducts([])
       setTestimonials([])
       setTestimonialCandidates([])
@@ -215,7 +216,7 @@ function AdminDashboardPage() {
     setProducts(data?.products ?? [])
     setTestimonials(data?.testimonials ?? [])
     setTestimonialCandidates(data?.testimonialCandidates ?? [])
-  }, [callContentFunction, isSuperAdmin])
+  }, [callContentFunction, canManageContent])
 
   const loadResponses = useCallback(async (quoteId) => {
     if (!supabase || !quoteId) {
@@ -323,6 +324,15 @@ function AdminDashboardPage() {
         setTestimonialCandidates(contentData?.testimonialCandidates ?? [])
       } catch (adminLoadError) {
         setError((current) => current || adminLoadError.message)
+      }
+    } else if (profileData.role === 'content_editor') {
+      try {
+        const contentData = await callContentFunction({ action: 'list' })
+        setProducts(contentData?.products ?? [])
+        setTestimonials(contentData?.testimonials ?? [])
+        setTestimonialCandidates(contentData?.testimonialCandidates ?? [])
+      } catch (contentLoadError) {
+        setError((current) => current || contentLoadError.message)
       }
     } else {
       setProducts([])
@@ -560,7 +570,7 @@ function AdminDashboardPage() {
         packaging: linesToArray(productForm.packaging),
         qualityPoints: linesToArray(productForm.qualityPoints),
         sortOrder: Number(productForm.sortOrder) || 0,
-        isPublished: productForm.isPublished,
+        isPublished: isSuperAdmin ? productForm.isPublished : false,
       })
       setNotice(productForm.id ? 'Product saved.' : 'Product added to the catalogue.')
       setProductForm(emptyProductForm)
@@ -615,7 +625,7 @@ function AdminDashboardPage() {
         companyName: testimonialForm.companyName,
         roleOrMarket: testimonialForm.roleOrMarket,
         quoteText: testimonialForm.quoteText,
-        isPublished: testimonialForm.isPublished,
+        isPublished: isSuperAdmin ? testimonialForm.isPublished : false,
       })
       setNotice(testimonialForm.id ? 'Testimonial saved.' : 'Testimonial draft created.')
       setTestimonialForm(emptyTestimonialForm)
@@ -713,8 +723,8 @@ function AdminDashboardPage() {
       <nav className="ops-tabs" aria-label="Administration sections">
         <button className={section === 'overview' ? 'active' : ''} onClick={() => setSection('overview')}>Overview</button>
         <button className={section === 'enquiries' ? 'active' : ''} onClick={openEnquiries}>Enquiries{newEnquiryCount > 0 ? ` (${newEnquiryCount})` : ''}</button>
-        {isSuperAdmin && <button className={section === 'products' ? 'active' : ''} onClick={() => setSection('products')}>Products</button>}
-        {isSuperAdmin && <button className={section === 'testimonials' ? 'active' : ''} onClick={() => setSection('testimonials')}>Testimonials</button>}
+        {canManageContent && <button className={section === 'products' ? 'active' : ''} onClick={() => setSection('products')}>Products</button>}
+        {canManageContent && <button className={section === 'testimonials' ? 'active' : ''} onClick={() => setSection('testimonials')}>Testimonials</button>}
         {canViewDirectory && <button className={section === 'users' ? 'active' : ''} onClick={() => setSection('users')}>Users &amp; roles</button>}
         {canViewAnalytics && <button className={section === 'analytics' ? 'active' : ''} onClick={() => setSection('analytics')}>Analytics</button>}
         {canViewAudit && <button className={section === 'audit' ? 'active' : ''} onClick={() => setSection('audit')}>Audit</button>}
@@ -850,7 +860,7 @@ function AdminDashboardPage() {
         </section>
       )}
 
-      {section === 'products' && isSuperAdmin && (
+      {section === 'products' && canManageContent && (
         <section className="ops-section">
           <div className="ops-section-heading"><div><span>Catalogue desk</span><h2>Products</h2></div><button className="ops-primary" type="button" onClick={() => setProductForm(emptyProductForm)}>Add product</button></div>
           <div className="ops-content-layout">
@@ -859,8 +869,8 @@ function AdminDashboardPage() {
                 <article key={product.id} className="ops-content-row">
                   <div><span className={product.is_published ? 'ops-publish-state live' : 'ops-publish-state'}>{product.is_published ? 'Published' : 'Draft'}</span><h3>{product.name}</h3><p>{product.category} — /export-product/{product.slug}</p></div>
                   <div className="ops-row-actions">
-                    <button className="ops-ghost" type="button" onClick={() => setProductForm(productRowToForm(product))}>Edit</button>
-                    <button className="ops-ghost" type="button" disabled={busyAction === `product:${product.id}`} onClick={() => setProductPublished(product, !product.is_published)}>{product.is_published ? 'Unpublish' : 'Publish'}</button>
+                    <button className="ops-ghost" type="button" disabled={!isSuperAdmin && product.is_published} onClick={() => setProductForm(productRowToForm(product))}>Edit</button>
+                    {isSuperAdmin && <button className="ops-ghost" type="button" disabled={busyAction === `product:${product.id}`} onClick={() => setProductPublished(product, !product.is_published)}>{product.is_published ? 'Unpublish' : 'Publish'}</button>}
                     {!product.is_published && <button className="ops-danger-text" type="button" onClick={() => deleteProduct(product)}>Delete</button>}
                   </div>
                 </article>
@@ -884,14 +894,14 @@ function AdminDashboardPage() {
                 <label><span>Quality points — one per line</span><textarea rows="6" value={productForm.qualityPoints} onChange={(event) => setProductForm((form) => ({ ...form, qualityPoints: event.target.value }))} /></label>
               </div>
               <label><span>Specifications — one “Label: Value” per line</span><textarea rows="7" value={productForm.specifications} onChange={(event) => setProductForm((form) => ({ ...form, specifications: event.target.value }))} /></label>
-              <label className="ops-check"><input type="checkbox" checked={productForm.isPublished} onChange={(event) => setProductForm((form) => ({ ...form, isPublished: event.target.checked }))} /><span>Publish immediately after saving</span></label>
+              {isSuperAdmin ? <label className="ops-check"><input type="checkbox" checked={productForm.isPublished} onChange={(event) => setProductForm((form) => ({ ...form, isPublished: event.target.checked }))} /><span>Publish immediately after saving</span></label> : <p className="ops-readonly-note">Your product changes are saved as drafts. A super administrator publishes them.</p>}
               <div className="ops-inline-actions"><button className="ops-primary" type="submit" disabled={savingProduct}>{savingProduct ? 'Saving…' : 'Save product'}</button>{productForm.id && <button className="ops-ghost" type="button" onClick={() => setProductForm(emptyProductForm)}>Cancel edit</button>}</div>
             </form>
           </div>
         </section>
       )}
 
-      {section === 'testimonials' && isSuperAdmin && (
+      {section === 'testimonials' && canManageContent && (
         <section className="ops-section">
           <div className="ops-section-heading"><div><span>Buyer proof</span><h2>Testimonials</h2></div><button className="ops-primary" type="button" onClick={() => setTestimonialForm(emptyTestimonialForm)}>New testimonial</button></div>
           <div className="ops-content-layout">
@@ -900,7 +910,7 @@ function AdminDashboardPage() {
                 {testimonials.map((testimonial) => (
                   <article key={testimonial.id} className="ops-content-row testimonial-row">
                     <div><span className={testimonial.is_published ? 'ops-publish-state live' : 'ops-publish-state'}>{testimonial.is_published ? 'Published' : 'Draft'}</span><h3>{testimonial.buyer_name}</h3><p>{testimonial.quote_text}</p></div>
-                    <div className="ops-row-actions"><button className="ops-ghost" type="button" onClick={() => setTestimonialForm(testimonialRowToForm(testimonial))}>Edit</button><button className="ops-ghost" type="button" onClick={() => setTestimonialPublished(testimonial, !testimonial.is_published)}>{testimonial.is_published ? 'Unpublish' : 'Publish'}</button>{!testimonial.is_published && <button className="ops-danger-text" type="button" onClick={() => deleteTestimonial(testimonial)}>Delete</button>}</div>
+                    <div className="ops-row-actions"><button className="ops-ghost" type="button" disabled={!isSuperAdmin && testimonial.is_published} onClick={() => setTestimonialForm(testimonialRowToForm(testimonial))}>Edit</button>{isSuperAdmin && <button className="ops-ghost" type="button" onClick={() => setTestimonialPublished(testimonial, !testimonial.is_published)}>{testimonial.is_published ? 'Unpublish' : 'Publish'}</button>}{!testimonial.is_published && <button className="ops-danger-text" type="button" onClick={() => deleteTestimonial(testimonial)}>Delete</button>}</div>
                   </article>
                 ))}
               </div>
@@ -918,7 +928,7 @@ function AdminDashboardPage() {
               <label><span>Company</span><input value={testimonialForm.companyName} onChange={(event) => setTestimonialForm((form) => ({ ...form, companyName: event.target.value }))} /></label>
               <label><span>Role or market</span><input value={testimonialForm.roleOrMarket} onChange={(event) => setTestimonialForm((form) => ({ ...form, roleOrMarket: event.target.value }))} placeholder="Food Distributor, India" /></label>
               <label><span>Testimonial</span><textarea rows="8" value={testimonialForm.quoteText} onChange={(event) => setTestimonialForm((form) => ({ ...form, quoteText: event.target.value }))} required /></label>
-              <label className="ops-check"><input type="checkbox" checked={testimonialForm.isPublished} onChange={(event) => setTestimonialForm((form) => ({ ...form, isPublished: event.target.checked }))} /><span>Publish on the public website</span></label>
+              {isSuperAdmin ? <label className="ops-check"><input type="checkbox" checked={testimonialForm.isPublished} onChange={(event) => setTestimonialForm((form) => ({ ...form, isPublished: event.target.checked }))} /><span>Publish on the public website</span></label> : <p className="ops-readonly-note">You can prepare testimonial drafts. Only a super administrator can publish or unpublish buyer comments.</p>}
               <div className="ops-inline-actions"><button className="ops-primary" type="submit" disabled={savingTestimonial}>{savingTestimonial ? 'Saving…' : 'Save testimonial'}</button>{testimonialForm.id && <button className="ops-ghost" type="button" onClick={() => setTestimonialForm(emptyTestimonialForm)}>Cancel edit</button>}</div>
             </form>
           </div>

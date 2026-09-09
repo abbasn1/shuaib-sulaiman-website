@@ -65,10 +65,18 @@ Deno.serve(async (request) => {
 
     if (profileError || !profile?.is_active) return jsonResponse({ error: 'This account is not authorised.' }, 403)
     if (profile.must_change_password) return jsonResponse({ error: 'Change your password before managing content.' }, 403)
-    if (profile.role !== 'super_admin') return jsonResponse({ error: 'Only a super administrator can manage public content.' }, 403)
+    const callerIsSuperAdmin = profile.role === 'super_admin'
+    const callerIsContentEditor = profile.role === 'content_editor'
+    if (!callerIsSuperAdmin && !callerIsContentEditor) {
+      return jsonResponse({ error: 'Your role cannot manage website content.' }, 403)
+    }
 
     const body = await request.json()
     const action = String(body?.action || '')
+    if (callerIsContentEditor && ['set-product-published', 'set-testimonial-published'].includes(action)) {
+      return jsonResponse({ error: 'Only a super administrator can publish or unpublish public content.' }, 403)
+    }
+    if (callerIsContentEditor && ['save-product', 'save-testimonial'].includes(action)) body.isPublished = false
 
     const writeAudit = async (auditAction: string, entityType: string, entityId: string | null, details: Record<string, unknown> = {}) => {
       const { error } = await adminClient.from('audit_logs').insert({
@@ -128,6 +136,9 @@ Deno.serve(async (request) => {
       if (id) {
         const { data: existing, error: existingError } = await adminClient.from('products').select('id,slug,name,is_published').eq('id', id).single()
         if (existingError || !existing) return jsonResponse({ error: 'Product not found.' }, 404)
+        if (callerIsContentEditor && existing.is_published) {
+          return jsonResponse({ error: 'Published products can only be changed by a super administrator.' }, 403)
+        }
         const { data, error } = await adminClient.from('products').update(record).eq('id', id).select('*').single()
         if (error) throw error
         await writeAudit('product_updated', 'product', id, { previous_slug: existing.slug, slug, published: record.is_published })
@@ -187,6 +198,11 @@ Deno.serve(async (request) => {
         updated_at: new Date().toISOString(),
       }
       if (id) {
+        if (callerIsContentEditor) {
+          const { data: existing, error: existingError } = await adminClient.from('testimonials').select('id,is_published').eq('id', id).single()
+          if (existingError || !existing) return jsonResponse({ error: 'Testimonial not found.' }, 404)
+          if (existing.is_published) return jsonResponse({ error: 'Published testimonials can only be changed by a super administrator.' }, 403)
+        }
         const { data, error } = await adminClient.from('testimonials').update(record).eq('id', id).select('*').single()
         if (error) throw error
         await writeAudit('testimonial_updated', 'testimonial', id, { published: isPublished })

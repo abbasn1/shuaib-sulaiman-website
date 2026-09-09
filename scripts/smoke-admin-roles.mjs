@@ -53,6 +53,14 @@ const roleCases = {
     reply: false,
     createUser: false,
   },
+  content_editor: {
+    tabs: ['Overview', 'Enquiries', 'Products', 'Testimonials'],
+    hidden: ['Users & roles', 'Analytics', 'Audit', 'Settings'],
+    status: false,
+    assign: false,
+    reply: false,
+    createUser: false,
+  },
 }
 
 const encode = (value) => Buffer.from(JSON.stringify(value)).toString('base64url')
@@ -92,7 +100,7 @@ async function installMocks(page, state) {
       return json(route, { success: true })
     }
     if (path === '/functions/v1/admin-content') {
-      if (state.role !== 'super_admin') return json(route, { error: 'Only a super administrator can manage public content.' }, 403)
+      if (!['super_admin', 'content_editor'].includes(state.role)) return json(route, { error: 'Your role cannot manage website content.' }, 403)
       return json(route, { products: [], testimonials: [], testimonialCandidates: [state.quote] })
     }
     if (path === '/functions/v1/admin-quotes') {
@@ -141,6 +149,13 @@ for (const [role, expected] of Object.entries(roleCases)) {
       await page.getByRole('button', { name: 'Users & roles' }).click()
       assert((await page.locator('.ops-create-user').count() > 0) === expected.createUser, `${role}: create-user permission mismatch`)
       if (!expected.createUser) assert(await page.getByText(state.email).isVisible(), `${role}: should retain read-only directory access`)
+    }
+
+    if (role === 'content_editor') {
+      await page.getByRole('button', { name: 'Products', exact: true }).click()
+      assert(await page.getByRole('button', { name: 'Publish', exact: true }).count() === 0, 'content_editor: publish product action should be hidden')
+      await page.getByRole('button', { name: 'Testimonials', exact: true }).click()
+      assert(await page.getByRole('button', { name: 'Publish', exact: true }).count() === 0, 'content_editor: publish testimonial action should be hidden')
     }
 
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
