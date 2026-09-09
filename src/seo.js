@@ -89,7 +89,7 @@ export function getSeoForPath(pathname, origin = DEFAULT_SITE_ORIGIN) {
       canonicalPath,
       imageUrl: `${siteOrigin}${product.image}`,
       robots: 'index, follow',
-      type: 'product',
+      type: 'website',
       product,
     }
   }
@@ -135,23 +135,37 @@ export function getOrganizationSchema(origin = DEFAULT_SITE_ORIGIN) {
 export function getProductSchema(product, origin = DEFAULT_SITE_ORIGIN) {
   if (!product) return null
   const siteOrigin = normalizeOrigin(origin)
+  const pageUrl = `${siteOrigin}/export-product/${product.slug}`
   return {
     '@context': 'https://schema.org',
-    '@type': 'Product',
-    name: product.name,
-    image: `${siteOrigin}${product.image}`,
+    '@type': 'ItemPage',
+    name: `${product.name} Export Supply`,
+    url: pageUrl,
     description: product.summary,
-    category: product.category,
-    brand: {
-      '@type': 'Brand',
-      name: 'S&S',
+    primaryImageOfPage: {
+      '@type': 'ImageObject',
+      contentUrl: `${siteOrigin}${product.image}`,
     },
-    manufacturer: {
-      '@type': 'Organization',
+    about: {
+      '@type': 'Thing',
+      name: product.name,
+      description: product.summary,
+      image: `${siteOrigin}${product.image}`,
+    },
+    isPartOf: {
+      '@type': 'WebSite',
       name: SITE_NAME,
       url: siteOrigin,
     },
-    url: `${siteOrigin}/export-product/${product.slug}`,
+    publisher: {
+      '@type': 'Organization',
+      name: SITE_NAME,
+      url: siteOrigin,
+      logo: {
+        '@type': 'ImageObject',
+        url: `${siteOrigin}/images/logo.png`,
+      },
+    },
   }
 }
 
