@@ -21,7 +21,7 @@ The initial catalogue contains these 7 S&S products:
 6. S&S Coal (Black)
 7. S&S Yam Flour (Amala)
 
-After the content migration is applied, `public.products` is the production source of truth. A signed-in `super_admin` can create, edit, publish, unpublish and remove catalogue items from **Admin → Products**. `src/data.js` remains a safe build/deployment fallback for the original seven products and static service copy.
+After the content migration is applied, `public.products` is the production source of truth. A signed-in `super_admin` can create, edit, publish, unpublish and remove catalogue items from **Admin → Products**. A `content_editor` can prepare and maintain unpublished product drafts, but publishing and changes to already-published content remain restricted to `super_admin`. `src/data.js` remains a safe build/deployment fallback for the original seven products and static service copy.
 
 Only published product rows appear on the public Home, Products, Product Details and Contact pages.
 
@@ -35,6 +35,7 @@ Current roles:
 - `sales_officer`
 - `analytics_viewer`
 - `auditor`
+- `content_editor`
 
 The dashboard supports, according to role:
 - enquiry search and status management
@@ -45,9 +46,11 @@ The dashboard supports, according to role:
 - password resets and forced first-login password changes
 - visitor analytics and enquiry-pipeline charts
 - administrative audit history and recent activity
-- super-admin product catalogue management
-- super-admin testimonial review/publish/unpublish
-- super-admin management of the contact-form notification recipient
+- product catalogue draft management, with publishing reserved for `super_admin`
+- testimonial draft/review management, with publish/unpublish reserved for `super_admin`
+- `super_admin` management of the contact-form notification recipient
+
+`content_editor` is deliberately least-privilege: it can read enquiry context and prepare product/testimonial drafts, but cannot change enquiry workflow, assign enquiries, reply to buyers, manage users, view analytics/audit data, or publish/unpublish public content.
 
 The dashboard polls for new enquiries every 20 seconds and shows a new-enquiry indicator without a full-page refresh.
 
@@ -58,10 +61,10 @@ Privileged writes are performed by JWT-protected Supabase Edge Functions rather 
 - `admin-users` — JWT-protected user, password and protected-setting administration
 - `admin-quotes` — JWT-protected status and assignment changes
 - `reply-to-quote` — JWT-protected Resend reply delivery and conversation recording
-- `admin-content` — JWT-protected, super-admin-only product and testimonial management
+- `admin-content` — JWT-protected product/testimonial administration; `content_editor` may manage drafts while publishing is `super_admin`-only
 
 ## Testimonials
-Buyer enquiry messages are never automatically published. A super admin may create a testimonial draft from an enquiry or enter one manually, review/edit it, and explicitly publish or unpublish it. The public site only reads `is_published = true` testimonials.
+Buyer enquiry messages are never automatically published. A `content_editor` or `super_admin` may create and edit an unpublished testimonial draft from an enquiry or enter one manually. Only a `super_admin` may publish or unpublish it. The public site only reads `is_published = true` testimonials.
 
 ## Environment variables
 Public Vite variables:
