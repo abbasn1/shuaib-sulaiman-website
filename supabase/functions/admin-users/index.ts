@@ -11,7 +11,7 @@ const jsonResponse = (body: unknown, status = 200) => new Response(JSON.stringif
   headers: { ...corsHeaders, 'Content-Type': 'application/json' },
 })
 
-const assignableRoles = ['super_admin', 'admin', 'quote_manager', 'sales_officer', 'analytics_viewer', 'auditor']
+const assignableRoles = ['super_admin', 'admin', 'quote_manager', 'sales_officer', 'analytics_viewer', 'auditor', 'content_editor']
 const adminAssignableRoles = assignableRoles.filter((role) => role !== 'super_admin')
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 

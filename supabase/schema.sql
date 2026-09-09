@@ -5,7 +5,7 @@ revoke all on schema private from public;
 grant usage on schema private to authenticated;
 
 do $$ begin
-  create type public.app_role as enum ('super_admin','admin','quote_manager','sales_officer','analytics_viewer','auditor');
+  create type public.app_role as enum ('super_admin','admin','quote_manager','sales_officer','analytics_viewer','auditor','content_editor');
 exception when duplicate_object then null; end $$;
 
 do $$ begin
@@ -159,7 +159,7 @@ for select to authenticated using (
 drop policy if exists "staff read quotes" on public.quotes;
 create policy "staff read quotes" on public.quotes
 for select to authenticated using (
-  private.current_role() in ('super_admin','admin','quote_manager','sales_officer','analytics_viewer','auditor')
+  private.current_role() in ('super_admin','admin','quote_manager','sales_officer','analytics_viewer','auditor','content_editor')
 );
 
 drop policy if exists "public record visits" on public.visits;
@@ -197,7 +197,7 @@ for select to authenticated using (private.current_role() = 'super_admin');
 drop policy if exists "staff read quote responses" on public.quote_responses;
 create policy "staff read quote responses" on public.quote_responses
 for select to authenticated using (
-  private.current_role() in ('super_admin','admin','quote_manager','sales_officer','analytics_viewer','auditor')
+  private.current_role() in ('super_admin','admin','quote_manager','sales_officer','analytics_viewer','auditor','content_editor')
 );
 
 create or replace function public.handle_new_user()
