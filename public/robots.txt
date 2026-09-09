@@ -1,6 +1,5 @@
-# Generated during `npm run build` with SITE_URL, VITE_SITE_URL, or Cloudflare's CF_PAGES_URL.
 User-agent: *
 Allow: /
 Disallow: /admin
 Disallow: /admin/
-Sitemap: https://YOUR_PRODUCTION_DOMAIN.example/sitemap.xml
+Sitemap: https://shuaibsulaimangeneralcontractors.com/sitemap.xml
