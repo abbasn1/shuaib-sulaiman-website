@@ -31,6 +31,6 @@ The normal contact-form recipient is stored server-side in `public.app_settings`
 - `admin-users` — authenticated/JWT protected
 - `admin-quotes` — authenticated/JWT protected
 - `reply-to-quote` — authenticated/JWT protected
-- `admin-content` — authenticated/JWT protected and super-admin-only in its server-side authorization logic
+- `admin-content` — authenticated/JWT protected; `content_editor` may manage unpublished drafts, while publish/unpublish and changes to already-published public content are restricted to `super_admin`
 
 Never commit real values for any server-side secret.
