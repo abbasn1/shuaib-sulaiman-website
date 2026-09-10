@@ -46,29 +46,33 @@ const PAGE_META = {
 }
 
 const stripTrailingSlash = (value) => value.length > 1 ? value.replace(/\/+$/, '') : value
+const normalizePathname = (pathname = '/') => stripTrailingSlash(pathname || '/')
 
 export const normalizeOrigin = (origin = DEFAULT_SITE_ORIGIN) => stripTrailingSlash(origin || DEFAULT_SITE_ORIGIN)
 
 export const canonicalPathFor = (pathname) => {
-  if (pathname === '/terms') return '/terms-and-conditions'
-  const aliasMatch = pathname.match(/^\/products\/([^/]+)$/)
+  const normalizedPath = normalizePathname(pathname)
+  if (normalizedPath === '/terms') return '/terms-and-conditions'
+  const aliasMatch = normalizedPath.match(/^\/products\/([^/]+)$/)
   if (aliasMatch) return `/export-product/${aliasMatch[1]}`
-  return pathname
+  return normalizedPath
 }
 
 export const findProductForPath = (pathname) => {
-  const match = pathname.match(/^\/(?:export-product|products)\/([^/]+)$/)
+  const normalizedPath = normalizePathname(pathname)
+  const match = normalizedPath.match(/^\/(?:export-product|products)\/([^/]+)$/)
   if (!match) return null
   return products.find((product) => product.slug === match[1]) || null
 }
 
 export function getSeoForPath(pathname, origin = DEFAULT_SITE_ORIGIN) {
   const siteOrigin = normalizeOrigin(origin)
-  const product = findProductForPath(pathname)
-  const canonicalPath = canonicalPathFor(pathname)
+  const normalizedPath = normalizePathname(pathname)
+  const product = findProductForPath(normalizedPath)
+  const canonicalPath = canonicalPathFor(normalizedPath)
   const canonicalUrl = `${siteOrigin}${canonicalPath}`
 
-  if (pathname.startsWith('/admin')) {
+  if (normalizedPath.startsWith('/admin')) {
     return {
       title: `Administration | ${SITE_NAME}`,
       description: 'Private administration area for Shuaib Sulaiman & Co staff.',
