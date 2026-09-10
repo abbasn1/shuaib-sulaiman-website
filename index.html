@@ -9,5 +9,32 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <script>
+      // Admin enquiry action UX helper. React still owns the actual secured actions;
+      // this makes their result visible immediately, especially on phones/tablets.
+      document.addEventListener('click', (event) => {
+        if (!location.pathname.startsWith('/admin')) return;
+        const button = event.target.closest('button');
+        if (!button) return;
+        const label = (button.textContent || '').trim().toLowerCase();
+
+        if (label === 'open & reply' || label === 'open enquiry') {
+          window.setTimeout(() => {
+            const target = document.querySelector('.ops-reply-form') || document.querySelector('.ops-enquiry-detail');
+            if (!target) return;
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            const textarea = target.querySelector('textarea');
+            if (textarea) window.setTimeout(() => textarea.focus({ preventScroll: true }), 350);
+          }, 80);
+        }
+
+        if (label === 'approve') {
+          window.setTimeout(() => {
+            const feedback = document.querySelector('.ops-message');
+            if (feedback) feedback.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }, 250);
+        }
+      });
+    </script>
   </body>
 </html>
