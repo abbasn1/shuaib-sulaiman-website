@@ -29,12 +29,13 @@ Deno.serve(async (request) => {
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     let resendApiKey = Deno.env.get('RESEND_API_KEY') || ''
-    const emailFrom = Deno.env.get('QUOTE_EMAIL_FROM') || 'Shuaib Sulaiman & Co <onboarding@resend.dev>'
+    const emailFrom = Deno.env.get('QUOTE_EMAIL_FROM') || 'Shuaib Sulaiman & Co <enquiries@shuaibsulaimangeneralcontractors.com>'
     const authHeader = request.headers.get('Authorization') ?? ''
 
     if (!supabaseUrl || !anonKey || !serviceRoleKey) {
       return jsonResponse({ error: 'Reply service configuration is incomplete.' }, 503)
     }
+    if (!authHeader.startsWith('Bearer ')) return jsonResponse({ error: 'Unauthenticated request.' }, 401)
 
     const callerClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
@@ -44,20 +45,8 @@ Deno.serve(async (request) => {
       auth: { persistSession: false, autoRefreshToken: false },
     })
 
-    if (!resendApiKey) {
-      const { data: secretRow, error: secretError } = await adminClient
-        .from('integration_secrets')
-        .select('secret_value')
-        .eq('secret_key', 'resend_api_key')
-        .maybeSingle()
-      if (secretError) console.error('Unable to load Resend credential:', secretError.message)
-      resendApiKey = secretRow?.secret_value || ''
-    }
-
-    if (!resendApiKey) return jsonResponse({ error: 'Reply email provider is not configured.' }, 503)
-
     const { data: userData, error: userError } = await callerClient.auth.getUser()
-    if (userError || !userData.user) return jsonResponse({ error: 'Unauthenticated request.' }, 401)
+    if (userError || !userData.user) return jsonResponse({ error: 'Your session is invalid or expired. Sign in again.' }, 401)
 
     const { data: profile, error: profileError } = await adminClient
       .from('profiles')
@@ -84,6 +73,21 @@ Deno.serve(async (request) => {
       .single()
 
     if (quoteError || !quote) return jsonResponse({ error: 'Enquiry not found.' }, 404)
+    if (profile.role === 'sales_officer' && quote.assigned_to !== userData.user.id) {
+      return jsonResponse({ error: 'This enquiry is not assigned to you.' }, 403)
+    }
+
+    if (!resendApiKey) {
+      const { data: secretRow, error: secretError } = await adminClient
+        .from('integration_secrets')
+        .select('secret_value')
+        .eq('secret_key', 'resend_api_key')
+        .maybeSingle()
+      if (secretError) console.error('Unable to load Resend credential:', secretError.message)
+      resendApiKey = secretRow?.secret_value || ''
+    }
+
+    if (!resendApiKey) return jsonResponse({ error: 'Reply email provider is not configured.' }, 503)
 
     const subject = requestedSubject || `Re: ${quote.product_name || 'Your enquiry to Shuaib Sulaiman & Co.'}`
 
