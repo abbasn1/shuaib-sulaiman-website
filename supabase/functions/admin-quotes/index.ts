@@ -13,6 +13,12 @@ const approvalRoles = ['super_admin', 'admin']
 const assignableStaffRoles = ['super_admin', 'admin', 'quote_manager', 'sales_officer']
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const esc = (v: unknown) => String(v ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;')
+const roleLabel = (role: unknown) => String(role || '').replaceAll('_', ' ')
+const staffName = (profile: any) => {
+  const name = String(profile?.full_name || '').trim()
+  if (name && name.toLowerCase() !== 'new user') return name
+  return String(profile?.email || 'Staff member').trim()
+}
 
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
@@ -40,7 +46,6 @@ Deno.serve(async (request) => {
 
     const { data: quote, error: quoteError } = await adminClient.from('quotes').select('id,status,assigned_to,updated_at,full_name,company_name,email,phone,product_name,destination_country,message,created_at').eq('id', quoteId).single()
     if (quoteError || !quote) return jsonResponse({ error: 'Enquiry not found.' }, 404)
-
     if (callerProfile.role === 'sales_officer' && quote.assigned_to !== userData.user.id) return jsonResponse({ error: 'This enquiry is not assigned to you.' }, 403)
 
     const writeAudit = async (auditAction: string, details: Record<string, unknown>) => {
@@ -94,7 +99,9 @@ Deno.serve(async (request) => {
         try {
           const resendKey = await loadResendKey()
           if (!resendKey) throw new Error('Resend is not configured.')
-          const emailFrom = Deno.env.get('QUOTE_EMAIL_FROM') || 'Shuaib Sulaiman & Co <onboarding@resend.dev>'
+          const emailFrom = Deno.env.get('QUOTE_EMAIL_FROM') || 'Shuaib Sulaiman & Co <enquiries@shuaibsulaimangeneralcontractors.com>'
+          const displayName = staffName(assignee)
+          const displayRole = roleLabel(assignee.role)
           const response = await fetch('https://api.resend.com/emails', {
             method: 'POST',
             headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json', 'User-Agent': 'shuaib-sulaiman-website/1.0' },
@@ -102,8 +109,8 @@ Deno.serve(async (request) => {
               from: emailFrom,
               to: [assignee.email],
               reply_to: callerProfile.email || undefined,
-              subject: `Enquiry assigned to you: ${quote.product_name || 'Customer enquiry'}`,
-              html: `<div style="font-family:Arial,sans-serif;color:#172235"><h2>New enquiry assignment</h2><p>Hello ${esc(assignee.full_name)},</p><p>An enquiry has been assigned to you in the Shuaib Sulaiman & Co. admin dashboard.</p><p><strong>Customer:</strong> ${esc(quote.full_name)}</p><p><strong>Company:</strong> ${esc(quote.company_name || '—')}</p><p><strong>Product:</strong> ${esc(quote.product_name || 'General enquiry')}</p><p><strong>Destination:</strong> ${esc(quote.destination_country || '—')}</p><p><strong>Reference:</strong> ${esc(quote.id)}</p><p>Sign in to the admin dashboard to review and respond.</p></div>`
+              subject: `Enquiry assigned to ${displayName}: ${quote.product_name || 'Customer enquiry'}`,
+              html: `<div style="font-family:Arial,sans-serif;color:#172235"><h2>New enquiry assignment</h2><p>Hello ${esc(displayName)},</p><p><strong>Role:</strong> ${esc(displayRole)}</p><p>An enquiry has been assigned to you in the Shuaib Sulaiman & Co. admin dashboard.</p><p><strong>Customer:</strong> ${esc(quote.full_name)}</p><p><strong>Company:</strong> ${esc(quote.company_name || '—')}</p><p><strong>Product:</strong> ${esc(quote.product_name || 'General enquiry')}</p><p><strong>Destination:</strong> ${esc(quote.destination_country || '—')}</p><p><strong>Reference:</strong> ${esc(quote.id)}</p><p>Sign in to the admin dashboard to review and respond.</p></div>`
             })
           })
           const result = await response.json()
@@ -118,6 +125,8 @@ Deno.serve(async (request) => {
       await writeAudit('quote_assignment_updated', {
         previous_assigned_to: quote.assigned_to,
         assigned_to: assignedTo,
+        assignment_name: assignee ? staffName(assignee) : null,
+        assignment_role: assignee?.role || null,
         assignment_email: assignee?.email || null,
         assignment_notification_sent: notificationSent,
         assignment_notification_error: notificationError,
