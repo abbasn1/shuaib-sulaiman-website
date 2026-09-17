@@ -3,7 +3,7 @@ import Layout from './components/Layout'
 import SeoManager from './components/SeoManager'
 import AboutPage from './pages/AboutPage'
 import AdminChangePasswordPage from './pages/AdminChangePasswordPage'
-import AdminDashboardPage from './pages/AdminDashboardPage'
+import AdminDashboardRoute from './pages/AdminDashboardRoute'
 import AdminLoginPage from './pages/AdminLoginPage'
 import ContactPage from './pages/ContactPage'
 import HomePage from './pages/HomePage'
@@ -23,7 +23,7 @@ function App() {
       <Routes>
         <Route path="admin" element={<AdminLoginPage />} />
         <Route path="admin/change-password" element={<AdminChangePasswordPage />} />
-        <Route path="admin/dashboard" element={<AdminDashboardPage />} />
+        <Route path="admin/dashboard" element={<AdminDashboardRoute />} />
         <Route element={<Layout />}>
           <Route index element={<HomePage />} />
           <Route path="about" element={<AboutPage />} />
