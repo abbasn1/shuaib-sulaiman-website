@@ -52,8 +52,8 @@ Deno.serve(async (request) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     let resendApiKey = Deno.env.get('RESEND_API_KEY') || ''
-    const emailFrom = Deno.env.get('QUOTE_EMAIL_FROM') || 'Shuaib Sulaiman & Co <onboarding@resend.dev>'
-    const fallbackRecipient = Deno.env.get('QUOTE_NOTIFICATION_EMAIL') || 'sulaiman_shuaib@yahoo.com'
+    const emailFrom = Deno.env.get('QUOTE_EMAIL_FROM') || 'Shuaib Sulaiman & Co <enquiries@shuaibsulaimangeneralcontractors.com>'
+    const fallbackRecipient = Deno.env.get('QUOTE_NOTIFICATION_EMAIL') || 'shuaib_sulaiman@yahoo.com'
     const turnstileSecret = Deno.env.get('TURNSTILE_SECRET_KEY')
 
     if (!supabaseUrl || !serviceRoleKey) return jsonResponse({ error: 'Enquiry service configuration is incomplete.' }, 503)
