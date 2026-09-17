@@ -107,6 +107,7 @@ function Layout() {
           <div className="footer-legal-links">
             <Link to="/privacy-policy">Privacy Policy</Link>
             <Link to="/terms-and-conditions">Terms &amp; Conditions</Link>
+            <a href="https://gomutechnology.com" target="_blank" rel="noreferrer">Made by Gomutech</a>
           </div>
         </div>
       </footer>
