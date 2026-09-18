@@ -1,0 +1,16 @@
+{
+  "name": "Shuaib Sulaiman & Co",
+  "short_name": "Shuaib Sulaiman",
+  "icons": [
+    {
+      "src": "/images/logo.png",
+      "sizes": "1254x1254",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff"
+}
