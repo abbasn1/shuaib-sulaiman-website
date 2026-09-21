@@ -41,7 +41,7 @@ export const products = [
     slug: 's-s-garri-cassava',
     name: 'S&S Garri (Cassava)',
     category: 'Processed Food',
-    image: '/images/products/garri-cassava-flakes.jpeg',
+    image: '/images/products/ss-cassava-flour.webp',
     summary: 'Clean, properly processed cassava flakes supplied for diaspora, retail, wholesale and food-service markets.',
     overview: 'S&S Garri is produced from selected cassava and coordinated for buyers requiring dependable processing, moisture control, granulation and export preparation. White or yellow garri may be supplied subject to availability and the agreed order specification.',
     benefits: [
@@ -155,7 +155,7 @@ export const products = [
     slug: 's-s-charcoal',
     name: 'S&S Charcoal',
     category: 'Energy & Minerals',
-    image: '/images/products/s-s-charcoal.svg',
+    image: '/images/products/ss-charcoal.webp',
     summary: 'Selected charcoal supplied for approved commercial, industrial and hospitality uses, subject to destination regulations.',
     overview: 'S&S Charcoal is coordinated against clear buyer requirements covering wood source, lump size, fixed carbon, moisture, ash, burn characteristics and packaging. Supply is subject to responsible sourcing, export rules and destination-country requirements.',
     benefits: [
@@ -193,7 +193,7 @@ export const products = [
     slug: 's-s-coal-black',
     name: 'S&S Coal (Black)',
     category: 'Energy & Minerals',
-    image: '/images/products/s-s-coal-black.svg',
+    image: '/images/products/ss-coal-black.webp',
     summary: 'Black coal supplied to qualified industrial buyers against an agreed technical specification and regulatory review.',
     overview: 'S&S Coal (Black) is offered only for qualified commercial or industrial enquiries. Coal type, calorific value, sulphur, ash, moisture, particle size, volume, loading method, intended use and destination regulations must be confirmed before quotation or supply commitment.',
     benefits: [
@@ -231,7 +231,7 @@ export const products = [
     slug: 's-s-yam-flour-amala',
     name: 'S&S Yam Flour (Amala)',
     category: 'Processed Food',
-    image: '/images/products/s-s-yam-flour.svg',
+    image: '/images/products/ss-yam-flour-amala.webp',
     summary: 'Finely processed yam flour prepared for amala, retail distribution, food service and diaspora markets.',
     overview: 'S&S Yam Flour (Amala) is produced from selected yam and prepared as a shelf-stable flour for buyers requiring consistent texture, colour, cleanliness and packaging. Pack size, labelling, moisture limits and destination requirements are confirmed before production and shipment.',
     benefits: [

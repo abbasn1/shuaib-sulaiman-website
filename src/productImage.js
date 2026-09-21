@@ -7,7 +7,23 @@ const brandedProductImages = {
   's-s-yam-flour-amala': '/images/products/ss-yam-flour-amala.webp',
 }
 
+const brandedProductGalleries = {
+  's-s-yam-flour-amala': [
+    '/images/products/ss-yam-flour-amala.webp',
+    '/images/products/ss-yam-flour-amala-bulk.webp',
+  ],
+}
+
 export function getProductImage(product) {
-  if (product?.id && product.image) return product.image
+  if (!product) return ''
   return brandedProductImages[product.slug] ?? product.image
+}
+
+export function getProductImages(product) {
+  if (!product) return []
+
+  const primaryImage = getProductImage(product)
+  const gallery = brandedProductGalleries[product.slug] ?? []
+
+  return [...new Set([primaryImage, ...gallery].filter(Boolean))]
 }
