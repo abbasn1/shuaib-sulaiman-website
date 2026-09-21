@@ -1,7 +1,7 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { usePublishedProducts } from '../lib/content'
-import { getProductImage } from '../productImage'
+import { getProductImage, getProductImages } from '../productImage'
 
 const exportSteps = [
   ['01', 'Requirement Review', 'We confirm product type, quantity, destination, packaging and quality expectations.'],
@@ -14,12 +14,18 @@ function ProductDetailsPage() {
   const { slug } = useParams()
   const { products } = usePublishedProducts()
   const product = products.find((item) => item.slug === slug)
+  const productImages = getProductImages(product)
+  const [selectedImage, setSelectedImage] = useState('')
 
   useEffect(() => {
     document.title = product
       ? `${product.name} | Shuaib Sulaiman & Co`
       : 'Product Not Found | Shuaib Sulaiman & Co'
   }, [product])
+
+  useEffect(() => {
+    setSelectedImage('')
+  }, [slug])
 
   if (!product) {
     return (
@@ -50,9 +56,26 @@ function ProductDetailsPage() {
           </nav>
 
           <div className="product-detail-layout">
-            <div className="product-detail-image">
-              <img src={getProductImage(product)} alt={product.name} />
-              <span className="image-category">{product.category}</span>
+            <div className="product-detail-gallery">
+              <div className="product-detail-image">
+                <img src={selectedImage || productImages[0]} alt={product.name} />
+                <span className="image-category">{product.category}</span>
+              </div>
+              {productImages.length > 1 && (
+                <div className="product-image-thumbnails" aria-label={`${product.name} image gallery`}>
+                  {productImages.map((image, index) => (
+                    <button
+                      type="button"
+                      key={image}
+                      className={(selectedImage || productImages[0]) === image ? 'active' : ''}
+                      onClick={() => setSelectedImage(image)}
+                      aria-label={`View ${product.name} image ${index + 1}`}
+                    >
+                      <img src={image} alt="" />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="product-detail-copy">
