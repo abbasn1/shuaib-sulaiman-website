@@ -99,6 +99,9 @@ function Layout() {
           <p>63 Pent City Estate, Lokogoma, Abuja</p>
           <a href="mailto:sulaiman_shuaib@yahoo.com">sulaiman_shuaib@yahoo.com</a>
           <a href="mailto:shuaibsgeneralcontractors@gmail.com">shuaibsgeneralcontractors@gmail.com</a>
+          <a href="tel:+12699938368">USA: +1 (269) 993-8368</a>
+          <a href="tel:+2348148827914">Nigeria: 0814 882 7914</a>
+          <a href="tel:+2347061835850">Nigeria: 07061835850</a>
           <p>MOQ: 1 × 20ft Container</p>
         </div>
 

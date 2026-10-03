@@ -95,6 +95,8 @@ function ContactPage() {
 
           <div className="contact-cards">
             <article><span>Email</span><a href="mailto:shuaibsgeneralcontractors@gmail.com">shuaibsgeneralcontractors@gmail.com</a></article>
+            <article><span>Phone — USA</span><a href="tel:+12699938368">+1 (269) 993-8368</a></article>
+            <article><span>Phone — Nigeria</span><a href="tel:+2348148827914">0814 882 7914</a><a href="tel:+2347061835850">07061835850</a></article>
             <article><span>Address</span><strong>63 Pent City Estate, Lokogoma, Abuja</strong></article>
             <article><span>Minimum Order</span><strong>1 × 20ft Container</strong></article>
           </div>
